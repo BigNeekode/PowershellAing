@@ -1,0 +1,18 @@
+# PowerShell Profile .gitignore
+
+# Exclude any local configuration or secrets
+*.local.ps1
+*secrets*
+*credentials*
+
+# Exclude logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Exclude any history or cache files
+*history*
+*cache*
