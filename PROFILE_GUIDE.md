@@ -21,6 +21,13 @@ Complete guide to using your visually enhanced, Claude Code-optimized PowerShell
 ## Table of Contents
 - [Quick Start](#quick-start)
 - [Visual Enhancements](#visual-enhancements)
+- [UX Enhancement Modules](#ux-enhancement-modules)
+- [Interactive Menu System](#interactive-menu-system)
+- [Fuzzy Finding](#fuzzy-finding)
+- [Toast Notifications](#toast-notifications)
+- [Excel & CSV Tools](#excel--csv-tools)
+- [Code Analysis](#code-analysis)
+- [Calendar Features](#calendar-features)
 - [Claude Code Optimizations](#claude-code-optimizations)
 - [Navigation Commands](#navigation-commands)
 - [Git Commands](#git-commands)
@@ -98,6 +105,210 @@ First-time startup displays:
 
 ---
 
+## 🚀 UX Enhancement Modules
+
+Your profile now includes **7 powerful modules** that dramatically improve the user experience:
+
+### 🧩 Core Enhancement Modules
+
+| Module | Purpose | Key Features |
+|--------|---------|--------------|
+| **PSWriteColor** | Advanced text formatting | Multi-color output, structured messages, rainbow text |
+| **PSFzf** | Fuzzy finding | Interactive file/directory search with preview |
+| **PSScriptAnalyzer** | Code analysis | Script health checks, formatting, issue detection |
+| **ImportExcel** | Excel integration | Export/import Excel files, data manipulation |
+| **BurntToast** | Windows notifications | Toast notifications for long operations |
+| **PSMenu** | Interactive menus | Visual menu systems for easy navigation |
+| **PSCalendar** | Calendar utilities | Monthly calendar display, date calculations |
+
+### 📦 Auto-Installation
+These modules are **automatically installed** when you first load your profile:
+```powershell
+# Modules install silently in the background
+# Visual feedback shows installation progress
+# Each module enhances specific aspects of your workflow
+```
+
+### 🔧 Module Benefits
+- **🎨 Better Visual Feedback**: Enhanced colors and progress indicators
+- **⚡ Improved Productivity**: Faster file navigation and search
+- **🔔 Smart Notifications**: Windows toast notifications for long tasks
+- **📊 Data Integration**: Easy Excel/CSV data handling
+- **🔍 Code Quality**: Automatic script analysis and formatting
+- **📅 Time Management**: Calendar integration and scheduling
+
+---
+
+## 🍱 Interactive Menu System
+
+Launch common tasks with a visual menu interface:
+
+```powershell
+# Show interactive project menu
+menu
+
+# Navigate with arrow keys and Enter
+# Each option has visual indicators
+```
+
+**Menu Options:**
+1. 📊 **Quick Status** - Enhanced project overview
+2. 🌳 **Project Tree** - Directory structure
+3. 🌿 **Git Status** - Repository status
+4. 🧪 **Run Tests** - Execute test suite
+5. 🔨 **Build Project** - Build application
+6. 📦 **Install Packages** - Package management
+7. 🔍 **Search Files** - Find content in files
+8. ⚙️ **Settings** - Edit profile
+
+### 🎯 Benefits
+- **Visual Navigation**: See all options at once
+- **Quick Access**: One command for common tasks
+- **No Memorization**: Clear visual labels for each option
+
+---
+
+## 🔍 Fuzzy Finding
+
+Powerful fuzzy search capabilities for files, directories, and history:
+
+```powershell
+# Find files interactively with preview
+find-file
+
+# Find and navigate to directories
+find-dir
+
+# Search command history
+search-history
+```
+
+### ✨ Features
+- **Interactive Preview**: See file contents before opening
+- **Fuzzy Matching**: Type partial names to find files
+- **Quick Navigation**: Jump to directories instantly
+- **History Search**: Find previously run commands
+
+### 🚀 Usage Tips
+- Use **Tab** to auto-complete partial matches
+- **Preview pane** shows file contents on the right
+- **Quick selection** with Enter key
+- **Context-aware** search within current directory
+
+---
+
+## 🔔 Toast Notifications
+
+Windows toast notifications for long-running operations:
+
+```powershell
+# Enhanced module updates with notifications
+Update-AllModulesWithNotification
+
+# Long operations with visual feedback
+Invoke-WithNotification -ScriptBlock { npm install } -TaskName "Installing packages"
+```
+
+### 🔔 Notification Features
+- **Windows Toast Notifications**: Native Windows 10/11 notifications
+- **Task Completion Alerts**: Know when long tasks finish
+- **Sound Integration**: Optional audio alerts
+- **Progress Tracking**: Visual progress for operations
+
+### 📱 Benefits
+- **Non-intrusive**: Notifications appear without interrupting workflow
+- **Informative**: Clear success/error messages
+- **Background Monitoring**: Track long operations visually
+
+---
+
+## 📊 Excel & CSV Tools
+
+Professional data handling with Excel integration:
+
+```powershell
+# Export PowerShell data to Excel
+Get-Process | Export-DataToExcel -Path "processes.xlsx"
+
+# Import Excel data with preview
+$data = Import-ExcelData -Path "report.xlsx"
+
+# Convert CSV to Excel format
+Convert-CsvToExcel -CsvPath "data.csv" -ExcelPath "data.xlsx"
+```
+
+### 📈 Features
+- **Auto-formatted Tables**: Professional Excel output
+- **Data Preview**: See data before importing
+- **Batch Conversion**: CSV to Excel conversion
+- **Multiple Sheet Support**: Organize data across worksheets
+
+### 💼 Use Cases
+- **Report Generation**: Export system data to Excel
+- **Data Analysis**: Import Excel files for processing
+- **Data Migration**: Convert CSV files to Excel format
+- **Professional Output**: Create formatted spreadsheets
+
+---
+
+## 🔍 Code Analysis
+
+Professional PowerShell script analysis and formatting:
+
+```powershell
+# Analyze current script for issues
+analyze
+
+# Check all scripts in directory
+script-health
+
+# Format PowerShell code
+Get-Content "script.ps1" | Format-PowerShellCode
+```
+
+### 🔧 Analysis Features
+- **Issue Detection**: Find errors and warnings
+- **Code Formatting**: Professional code style
+- **Health Reports**: Overall script quality metrics
+- **Best Practices**: Enforce PowerShell standards
+
+### 📊 Benefits
+- **Code Quality**: Automatic issue detection
+- **Consistency**: Standardized formatting
+- **Maintenance**: Easier script maintenance
+- **Professional Standards**: Industry best practices
+
+---
+
+## 📅 Calendar Features
+
+Built-in calendar and scheduling capabilities:
+
+```powershell
+# Show current month calendar
+calendar
+
+# Show current month with custom date
+calendar -Month 12 -Year 2024
+
+# Show upcoming days
+events -Days 14
+```
+
+### 📅 Features
+- **Monthly Calendar**: Visual month display
+- **Current Day Highlighting**: Today's date prominently shown
+- **Upcoming Events**: 7-day event preview
+- **Date Calculations**: Easy date math and scheduling
+
+### ⏰ Use Cases
+- **Schedule Planning**: Visual calendar for project planning
+- **Date Calculations**: Quick date arithmetic
+- **Event Tracking**: Simple event management
+- **Time Management**: Visual time planning tools
+
+---
+
 ## Quick Start
 
 ### Most Useful Commands
@@ -106,11 +317,17 @@ First-time startup displays:
 # 🎨 Get visual project overview
 qs
 
-# 🌳 See project structure with icons
-tree
+# 🍱 Interactive menu launcher
+menu
 
-# 🌿 Check git status (enhanced visual)
-gss
+# 🔍 Fuzzy find files with preview
+find-file
+
+# 🔔 Run tasks with notifications
+Update-AllModulesWithNotification
+
+# 📊 Enhanced file listing with icons
+ls-detailed
 
 # 🧪 Run tests (auto-detects framework)
 test
@@ -118,14 +335,26 @@ test
 # 🔨 Build project (auto-detects build system)
 build
 
+# 🌳 See project structure with icons
+tree
+
+# 🌿 Check git status (enhanced visual)
+gss
+
 # 🔍 Search for text in files
 grep "searchterm"
 
 # 📖 View file with line numbers and syntax highlighting
 cat filename.js
 
-# 📊 Enhanced file listing with icons
-ls-detailed
+# 📅 Show calendar
+calendar
+
+# 📊 Export data to Excel
+Get-Process | Export-DataToExcel
+
+# 🔍 Analyze script health
+analyze
 
 # 📦 Install missing modules with visual feedback
 Install-MissingModule "ModuleName"
@@ -566,13 +795,25 @@ Get-ChildItem -Recurse | Where-Object { $_.Length -gt 1MB }
 | Command | Description |
 |---------|-------------|
 | 🎨 **`qs`** | Enhanced visual status overview |
+| 🍱 **`menu`** | Interactive project launcher |
+| 🔍 **`find-file`** | Fuzzy find files with preview |
+| 📁 **`find-dir`** | Fuzzy find directories |
+| 🔔 **`toast`** | Show Windows toast notification |
+| 📊 **`ls-detailed`** | Enhanced file listing with icons |
+| 🧪 **`test`** | Run tests (auto-detect) |
+| 🔨 **`build`** | Build project (auto-detect) |
 | 🌳 **`tree`** | Show directory structure |
 | 🌿 **`gss`** | Git status with visual indicators |
 | 📖 **`cat file`** | Show file with line numbers & colors |
 | 🔍 **`grep "text"`** | Search in files |
-| 🧪 **`test`** | Run tests (auto-detect) |
-| 🔨 **`build`** | Build project (auto-detect) |
-| 📊 **`ls-detailed`** | Enhanced file listing with icons |
+| 📅 **`calendar`** | Show monthly calendar |
+| 📊 **`events`** | Show upcoming days |
+| 📊 **`Export-DataToExcel`** | Export data to Excel file |
+| 📊 **`Import-ExcelData`** | Import Excel with preview |
+| 🔍 **`analyze`** | Analyze script for issues |
+| 🔍 **`script-health`** | Check all scripts in directory |
+| 🔍 **`format-code`** | Format PowerShell code |
+| 🌈 **`rainbow`** | Show rainbow-colored text |
 | ⬆️ **`..`** | Go up directory |
 | 📁 **`ll`** | List files (table format) |
 | 🌿 **`gs`** | Git status |
