@@ -8,6 +8,58 @@
 Import-Module PSReadLine -ErrorAction SilentlyContinue
 
 # ============================================
+# 🎯 Visual Status Functions (must be defined first)
+# ============================================
+
+# Visual status indicators
+function Show-Success {
+    param([string]$Message)
+    Write-Host "✅ $Message" -ForegroundColor Green
+}
+
+function Show-Error {
+    param([string]$Message)
+    Write-Host "❌ $Message" -ForegroundColor Red
+}
+
+function Show-Warning {
+    param([string]$Message)
+    Write-Host "⚠️  $Message" -ForegroundColor Yellow
+}
+
+function Show-Info {
+    param([string]$Message)
+    Write-Host "ℹ️  $Message" -ForegroundColor Cyan
+}
+
+# Progress indicator for long operations
+function Show-Progress {
+    param(
+        [string]$Activity,
+        [string]$Status = "",
+        [int]$PercentComplete = -1
+    )
+
+    if ($PercentComplete -eq -1) {
+        $spinner = @("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
+        $spinnerIndex = (Get-Date).Millisecond % $spinner.Length
+        Write-Host "[$($spinner[$spinnerIndex])] " -ForegroundColor Cyan -NoNewline
+        Write-Host "$Activity" -ForegroundColor White -NoNewline
+        if ($Status) { Write-Host " - $Status" -ForegroundColor DarkGray }
+        else { Write-Host "" }
+    } else {
+        $filled = [math]::Floor($PercentComplete / 10)
+        $empty = 10 - $filled
+        $progressBar = "█" * $filled + "░" * $empty
+        Write-Host "[$progressBar] " -ForegroundColor $(if ($PercentComplete -lt 30) { "Red" } elseif ($PercentComplete -lt 70) { "Yellow" } else { "Green" }) -NoNewline
+        Write-Host "$PercentComplete% " -ForegroundColor White -NoNewline
+        Write-Host "$Activity" -ForegroundColor Cyan -NoNewline
+        if ($Status) { Write-Host " - $Status" -ForegroundColor DarkGray }
+        else { Write-Host "" }
+    }
+}
+
+# ============================================
 # Enhanced Module Management
 # ============================================
 
@@ -1204,54 +1256,7 @@ function Backup-File {
 # Enhanced UI/UX Features
 # ============================================
 
-# 🎯 Enhanced Progress Indicators
-# ============================================
-function Show-Progress {
-    param(
-        [string]$Activity,
-        [string]$Status = "",
-        [int]$PercentComplete = -1
-    )
 
-    if ($PercentComplete -eq -1) {
-        $spinner = @("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
-        $spinnerIndex = (Get-Date).Millisecond % $spinner.Length
-        Write-Host "[$($spinner[$spinnerIndex])] " -ForegroundColor Cyan -NoNewline
-        Write-Host "$Activity" -ForegroundColor White -NoNewline
-        if ($Status) { Write-Host " - $Status" -ForegroundColor DarkGray }
-        else { Write-Host "" }
-    } else {
-        $filled = [math]::Floor($PercentComplete / 10)
-        $empty = 10 - $filled
-        $progressBar = "█" * $filled + "░" * $empty
-        Write-Host "[$progressBar] " -ForegroundColor $(if ($PercentComplete -lt 30) { "Red" } elseif ($PercentComplete -lt 70) { "Yellow" } else { "Green" }) -NoNewline
-        Write-Host "$PercentComplete% " -ForegroundColor White -NoNewline
-        Write-Host "$Activity" -ForegroundColor Cyan -NoNewline
-        if ($Status) { Write-Host " - $Status" -ForegroundColor DarkGray }
-        else { Write-Host "" }
-    }
-}
-
-# Visual status indicators
-function Show-Success {
-    param([string]$Message)
-    Write-Host "✅ $Message" -ForegroundColor Green
-}
-
-function Show-Error {
-    param([string]$Message)
-    Write-Host "❌ $Message" -ForegroundColor Red
-}
-
-function Show-Warning {
-    param([string]$Message)
-    Write-Host "⚠️  $Message" -ForegroundColor Yellow
-}
-
-function Show-Info {
-    param([string]$Message)
-    Write-Host "ℹ️  $Message" -ForegroundColor Cyan
-}
 
 # Color-coded file size display
 function Get-FileSizeColor {
