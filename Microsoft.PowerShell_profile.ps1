@@ -1,8 +1,10 @@
 # ============================================
-# PowerShell Profile
+# 🚀 Enhanced PowerShell Profile
 # ============================================
+# 🎨 Visual enhancements with icons, colors, and modern UI
+# 🛠️  Optimized for Claude Code with clean output
 
-# Import modules with auto-installation
+# Import modules with auto-installation and visual feedback
 Import-Module PSReadLine -ErrorAction SilentlyContinue
 
 # ============================================
@@ -21,13 +23,15 @@ foreach ($module in $modulesToInstall) {
     $requiredVersion = $module.RequiredVersion
 
     if (-not (Get-Module -Name $moduleName -ListAvailable)) {
-        Write-Host "Installing module: $moduleName (v$requiredVersion)..." -ForegroundColor Yellow
+        Write-Host "📦 Installing module: " -ForegroundColor Yellow -NoNewline
+        Write-Host "$moduleName" -ForegroundColor White -NoNewline
+        Write-Host " (v$requiredVersion)..." -ForegroundColor DarkGray
         try {
             Install-Module -Name $moduleName -RequiredVersion $requiredVersion -Scope CurrentUser -Force -ErrorAction Stop
-            Write-Host "✓ $moduleName installed successfully" -ForegroundColor Green
+            Show-Success "$moduleName installed successfully"
         }
         catch {
-            Write-Host "✗ Failed to install $moduleName`: $($_.Exception.Message)" -ForegroundColor Red
+            Show-Error "Failed to install $moduleName`: $($_.Exception.Message)"
         }
     }
 
@@ -71,26 +75,41 @@ if (Get-Module -Name PSReadLine) {
     # Tab completion
     Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
 
-    # Colors
+    # 🎨 Enhanced Colors for Better Visual Experience
     Set-PSReadLineOption -Colors @{
-        Command            = 'Yellow'
-        Parameter          = 'Gray'
-        Operator           = 'Magenta'
-        Variable           = 'Green'
-        String             = 'Cyan'
-        Number             = 'Cyan'
-        Type               = 'DarkGray'
-        Comment            = 'DarkGreen'
-        InlinePrediction   = 'DarkGray'
+        Command            = 'Yellow'          # Commands in bright yellow
+        Comment            = 'DarkGreen'       # Comments in subtle green
+        ContinuationPrompt = 'DarkGray'        # Line continuation
+        Default            = 'White'           # Default text
+        Emphasis           = 'Cyan'            # Emphasized text
+        Error              = 'Red'             # Error text
+        InlinePrediction   = 'DarkGray'        # Predictive suggestions
+        Keyword            = 'Magenta'         # Keywords like if, for, etc.
+        ListPrediction     = 'DarkCyan'        # List predictions
+        Member             = 'DarkCyan'        # Object members
+        Number             = 'DarkCyan'        # Numbers
+        Operator           = 'DarkMagenta'     # Operators like +, -, =, etc.
+        Parameter          = 'DarkGray'        # Parameters
+        Selection          = 'DarkGray'        # Selected text
+        String             = 'Green'           # Strings in quotes
+        Type               = 'DarkBlue'        # Types like [string], [int]
+        Variable           = 'DarkYellow'      # Variables like $var
     }
 }
 
 # ============================================
-# Custom Prompt
+# 🎨 Enhanced Visual Prompt
 # ============================================
 function prompt {
     $ESC = [char]27
     $location = Get-Location
+
+    # Visual indicators with Unicode symbols
+    $homeIcon = "🏠"
+    $folderIcon = "📁"
+    $gitIcon = "🌿"
+    $modifiedIcon = "✏️"
+    $cleanIcon = "✅"
 
     # Get git branch if in a git repo
     $gitBranch = ""
@@ -98,21 +117,40 @@ function prompt {
         $branch = git branch --show-current 2>$null
         if ($branch) {
             $gitStatus = git status --porcelain 2>$null
-            $statusSymbol = if ($gitStatus) { "*" } else { "" }
-            $gitBranch = "$ESC[35m($branch$statusSymbol)$ESC[0m"
+            $statusIcon = if ($gitStatus) { $modifiedIcon } else { $cleanIcon }
+            $gitBranch = "$ESC[95m $gitIcon $branch $statusIcon$ESC[0m"
         }
     }
 
-    # Color the path
-    $path = "$ESC[36m$location$ESC[0m"
+    # Enhanced path display with icons
+    $pathParts = $location.Path.Split([IO.Path]::DirectorySeparatorChar)
+    $isHome = $location.Path -eq $env:USERPROFILE
 
-    # Username and computer
-    $user = "$ESC[32m$env:USERNAME$ESC[0m"
+    if ($isHome) {
+        $pathDisplay = "$ESC[94m$homeIcon $($env:USERNAME)'s Home$ESC[0m"
+    } else {
+        $parentPath = [IO.Path]::GetDirectoryName($location.Path)
+        $currentFolder = [IO.Path]::GetFileName($location.Path)
+        $pathDisplay = "$ESC[96m$parentPath$ESC[0m$ESC[93m$([char]0x2F)$currentFolder$ESC[0m"
+    }
 
-    # Build prompt
+    # Enhanced user display with visual flair
+    $userIcon = "👤"
+    $computerIcon = "💻"
+    $user = "$ESC[92m$userIcon $env:USERNAME$ESC[0m"
+    $computer = "$ESC[90m$computerIcon $env:COMPUTERNAME$ESC[0m"
+
+    # Build enhanced prompt with better layout
     Write-Host ""
-    Write-Host "$user $path$gitBranch" -NoNewline
-    return "`n> "
+    Write-Host "┌─ $user $computer" -ForegroundColor DarkGray
+    Write-Host "│" -ForegroundColor DarkGray -NoNewline
+    Write-Host "  $pathDisplay$gitBranch" -NoNewline
+    Write-Host ""
+    Write-Host "└─" -ForegroundColor DarkGray -NoNewline
+
+    # Enhanced prompt symbol with colors
+    $promptSymbol = "$ESC[93m▶$ESC[0m"
+    return " $promptSymbol "
 }
 
 # ============================================
@@ -513,37 +551,120 @@ function Search-Content {
         }
 }
 
-# Quick diagnostics - run all checks at once
+# 🚀 Enhanced Quick Status Display
+# ============================================
 function Show-QuickStatus {
-    Write-Host "`n=== Quick Status ===" -ForegroundColor Cyan
-    Write-Host "Directory: $(Get-Location)" -ForegroundColor White
+    Write-Host ""
+    Write-Host "╔══════════════════════════════════════════════════════════╗" -ForegroundColor DarkCyan
+    Write-Host "║                    📊 Quick Status                       ║" -ForegroundColor Cyan
+    Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor DarkCyan
+    Write-Host ""
 
-    # Git status
+    $currentPath = Get-Location
+
+    # Enhanced location display
+    Write-Host "📍 Location:" -ForegroundColor Yellow -NoNewline
+    Write-Host " $currentPath" -ForegroundColor White
+
+    # Enhanced Git status with visual indicators
     if (Test-Path .git) {
         $branch = git branch --show-current 2>$null
         $status = git status --porcelain 2>$null
-        $statusText = if ($status) { "uncommitted changes" } else { "clean" }
-        Write-Host "Git: $branch ($statusText)" -ForegroundColor $(if ($status) { "Yellow" } else { "Green" })
+        $statusIcon = if ($status) { "📝" } else { "✅" }
+        $statusText = if ($status) { "modified files" } else { "clean" }
+        $statusColor = if ($status) { "Yellow" } else { "Green" }
+
+        Write-Host "🌿 Git:" -ForegroundColor Yellow -NoNewline
+        Write-Host " $branch" -ForegroundColor Magenta -NoNewline
+        Write-Host " ($statusIcon $statusText)" -ForegroundColor $statusColor
+    } else {
+        Write-Host "🌿 Git:" -ForegroundColor Yellow -NoNewline
+        Write-Host " No repository" -ForegroundColor Red
     }
 
-    # Project type
-    if (Test-Path "package.json") { Write-Host "Project: Node.js/npm" -ForegroundColor Green }
-    elseif (Test-Path "requirements.txt") { Write-Host "Project: Python" -ForegroundColor Green }
-    elseif (Test-Path "Cargo.toml") { Write-Host "Project: Rust" -ForegroundColor Green }
-    elseif (Get-ChildItem -Filter "*.csproj") { Write-Host "Project: .NET/C#" -ForegroundColor Green }
-    elseif (Test-Path "go.mod") { Write-Host "Project: Go" -ForegroundColor Green }
+    # Enhanced project type detection with icons
+    $projectType = ""
+    $projectIcon = ""
+    if (Test-Path "package.json") {
+        $projectIcon = "🟢"
+        $projectType = "Node.js/npm"
+    }
+    elseif (Test-Path "requirements.txt") {
+        $projectIcon = "🐍"
+        $projectType = "Python"
+    }
+    elseif (Test-Path "Cargo.toml") {
+        $projectIcon = "🦀"
+        $projectType = "Rust"
+    }
+    elseif (Get-ChildItem -Filter "*.csproj") {
+        $projectIcon = "💎"
+        $projectType = ".NET/C#"
+    }
+    elseif (Test-Path "go.mod") {
+        $projectIcon = "🐹"
+        $projectType = "Go"
+    }
+    elseif (Test-Path "composer.json") {
+        $projectIcon = "🐘"
+        $projectType = "PHP/Composer"
+    }
+    elseif (Test-Path "Gemfile") {
+        $projectIcon = "💎"
+        $projectType = "Ruby"
+    }
+    else {
+        $projectIcon = "📁"
+        $projectType = "Generic/Unknown"
+    }
 
-    # Recent files modified
+    Write-Host "$projectIcon Project:" -ForegroundColor Yellow -NoNewline
+    Write-Host " $projectType" -ForegroundColor $(if ($projectType -eq "Generic/Unknown") { "DarkGray" } else { "Green" })
+
+    # Enhanced recent files with icons and better formatting
     $recentFiles = Get-ChildItem -File -Recurse -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending |
-        Select-Object -First 3
+        Select-Object -First 5
+
     if ($recentFiles) {
-        Write-Host "`nRecently modified:" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "🕐 Recently Modified:" -ForegroundColor Yellow
+        Write-Host "─" * 50 -ForegroundColor DarkGray
+
         $recentFiles | ForEach-Object {
-            $relPath = $_.FullName.Replace((Get-Location).Path, ".").Replace("\", "/")
-            Write-Host "  $relPath" -ForegroundColor DarkGray
+            $relPath = $_.FullName.Replace($currentPath.Path, ".").Replace("\", "/")
+            $timeSince = New-TimeSpan -Start $_.LastWriteTime -End (Get-Date)
+            $timeStr = if ($timeSince.TotalMinutes -lt 60) {
+                "{0:N0}m ago" -f $timeSince.TotalMinutes
+            } elseif ($timeSince.TotalHours -lt 24) {
+                "{0:N0}h ago" -f $timeSince.TotalHours
+            } else {
+                "{0:N0}d ago" -f $timeSince.TotalDays
+            }
+
+            # Get file extension for icon
+            $ext = $_.Extension
+            $fileIcon = switch ($ext) {
+                ".ps1" { "🔷" }
+                ".md" { "📝" }
+                ".json" { "⚙️" }
+                ".js" { "📜" }
+                ".ts" { "📘" }
+                ".py" { "🐍" }
+                ".cs" { "💎" }
+                ".html" { "🌐" }
+                ".css" { "🎨" }
+                Default { "📄" }
+            }
+
+            Write-Host "  $fileIcon " -NoNewline
+            Write-Host "$relPath" -ForegroundColor White -NoNewline
+            Write-Host " ($timeStr)" -ForegroundColor DarkGray
         }
     }
+
+    Write-Host ""
+    Write-Host "═" * 60 -ForegroundColor DarkCyan
     Write-Host ""
 }
 
@@ -1071,7 +1192,8 @@ function Backup-File {
 # Enhanced UI/UX Features
 # ============================================
 
-# Progress indicator for long operations
+# 🎯 Enhanced Progress Indicators
+# ============================================
 function Show-Progress {
     param(
         [string]$Activity,
@@ -1080,15 +1202,43 @@ function Show-Progress {
     )
 
     if ($PercentComplete -eq -1) {
-        Write-Host "[$([char]0x25B6)] $Activity" -ForegroundColor Cyan -NoNewline
-        if ($Status) { Write-Host " - $Status" -ForegroundColor Gray }
+        $spinner = @("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
+        $spinnerIndex = (Get-Date).Millisecond % $spinner.Length
+        Write-Host "[$($spinner[$spinnerIndex])] " -ForegroundColor Cyan -NoNewline
+        Write-Host "$Activity" -ForegroundColor White -NoNewline
+        if ($Status) { Write-Host " - $Status" -ForegroundColor DarkGray }
         else { Write-Host "" }
     } else {
-        $progressBar = "[$([char]0x25A0)" * ($PercentComplete / 10) + " " * (10 - $PercentComplete / 10) + "]"
-        Write-Host "$progressBar $PercentComplete% $Activity" -ForegroundColor Cyan -NoNewline
-        if ($Status) { Write-Host " - $Status" -ForegroundColor Gray }
+        $filled = [math]::Floor($PercentComplete / 10)
+        $empty = 10 - $filled
+        $progressBar = "█" * $filled + "░" * $empty
+        Write-Host "[$progressBar] " -ForegroundColor $(if ($PercentComplete -lt 30) { "Red" } elseif ($PercentComplete -lt 70) { "Yellow" } else { "Green" }) -NoNewline
+        Write-Host "$PercentComplete% " -ForegroundColor White -NoNewline
+        Write-Host "$Activity" -ForegroundColor Cyan -NoNewline
+        if ($Status) { Write-Host " - $Status" -ForegroundColor DarkGray }
         else { Write-Host "" }
     }
+}
+
+# Visual status indicators
+function Show-Success {
+    param([string]$Message)
+    Write-Host "✅ $Message" -ForegroundColor Green
+}
+
+function Show-Error {
+    param([string]$Message)
+    Write-Host "❌ $Message" -ForegroundColor Red
+}
+
+function Show-Warning {
+    param([string]$Message)
+    Write-Host "⚠️  $Message" -ForegroundColor Yellow
+}
+
+function Show-Info {
+    param([string]$Message)
+    Write-Host "ℹ️  $Message" -ForegroundColor Cyan
 }
 
 # Color-coded file size display
@@ -1122,13 +1272,71 @@ function Format-FileSize {
     return @{Size = $size; Color = $color}
 }
 
-# Enhanced file listing with colors and metadata
+# 🎨 Enhanced File Listing with Visual Indicators
+# ============================================
 function Show-FilesDetailed {
     param([string]$Path = ".")
 
+    Write-Host "📂 Contents of: $(Resolve-Path $Path)" -ForegroundColor Cyan
+    Write-Host "═" * 60 -ForegroundColor DarkCyan
+    Write-Host ""
+
     Get-ChildItem $Path -Force | ForEach-Object {
         $fileSize = Format-FileSize -SizeInBytes $_.Length
-        $lastWrite = $_.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
+        $lastWrite = $_.LastWriteTime.ToString("MM/dd HH:mm")
+        $isHidden = $_.Attributes -band [System.IO.FileAttributes]::Hidden
+
+        # Enhanced file type detection with icons
+        $fileIcon = switch ($_.Extension) {
+            ".exe" { "⚙️" }
+            ".dll" { "📚" }
+            ".ps1" { "🔷" }
+            ".md" { "📝" }
+            ".json" { "⚙️" }
+            ".log" { "📜" }
+            ".txt" { "📄" }
+            ".jpg" { "🖼️" }
+            ".png" { "🖼️" }
+            ".gif" { "🖼️" }
+            ".zip" { "📦" }
+            ".rar" { "📦" }
+            ".7z" { "📦" }
+            ".pdf" { "📕" }
+            ".doc" { "📄" }
+            ".docx" { "📄" }
+            ".xls" { "📊" }
+            ".xlsx" { "📊" }
+            ".mp3" { "🎵" }
+            ".mp4" { "🎥" }
+            ".avi" { "🎥" }
+            ".mkv" { "🎥" }
+            ".html" { "🌐" }
+            ".css" { "🎨" }
+            ".js" { "📜" }
+            ".ts" { "📘" }
+            ".py" { "🐍" }
+            ".java" { "☕" }
+            ".cpp" { "⚙️" }
+            ".c" { "⚙️" }
+            ".h" { "⚙️" }
+            ".cs" { "💎" }
+            ".php" { "🐘" }
+            ".rb" { "💎" }
+            ".go" { "🐹" }
+            ".rs" { "🦀" }
+            ".sh" { "📜" }
+            ".bat" { "⚙️" }
+            ".cmd" { "⚙️" }
+            ".yml" { "⚙️" }
+            ".yaml" { "⚙️" }
+            ".xml" { "⚙️" }
+            ".sql" { "🗃️" }
+            ".db" { "🗃️" }
+            ".sqlite" { "🗃️" }
+            Default {
+                if ($_.PSIsContainer) { "📁" } else { "📄" }
+            }
+        }
 
         # Color coding based on file type
         $color = switch ($_.Extension) {
@@ -1138,12 +1346,36 @@ function Show-FilesDetailed {
             ".md" { "Yellow" }
             ".json" { "Magenta" }
             ".log" { "DarkGray" }
+            ".txt" { "White" }
+            ".html" { "DarkRed" }
+            ".css" { "DarkBlue" }
+            ".js" { "DarkYellow" }
+            ".ts" { "Blue" }
+            ".py" { "DarkGreen" }
+            ".jpg" { "Magenta" }
+            ".png" { "Magenta" }
+            ".mp3" { "DarkMagenta" }
+            ".mp4" { "DarkMagenta" }
+            ".pdf" { "DarkRed" }
+            ".zip" { "Green" }
+            ".sql" { "DarkCyan" }
             Default { "White" }
         }
 
-        Write-Host ("{0,-4} {1,-12} {2,-8}" -f $_.Mode, $lastWrite, $fileSize.Size) -NoNewline -ForegroundColor DarkGray
-        Write-Host $_.Name -ForegroundColor $color
+        # Hidden file indicator
+        $hiddenIndicator = if ($isHidden) { "🔒" } else { "" }
+
+        # Format output with better alignment
+        $namePart = "$fileIcon$hiddenIndicator $($_.Name)"
+        Write-Host ("{0,-5} {1,-12} {2,-10}" -f $_.Mode, $lastWrite, $fileSize.Size) -ForegroundColor DarkGray -NoNewline
+        Write-Host $namePart -ForegroundColor $color
     }
+
+    Write-Host ""
+    Write-Host "═" * 60 -ForegroundColor DarkCyan
+    $totalSize = (Get-ChildItem $Path -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
+    $sizeInfo = Format-FileSize -SizeInBytes $totalSize
+    Write-Host "📊 Total size: $($sizeInfo.Size)" -ForegroundColor Cyan
 }
 
 # Notification system for long-running tasks
@@ -1188,19 +1420,65 @@ Set-Alias -Name ls-detailed -Value Show-FilesDetailed -ErrorAction SilentlyConti
 # Clear-Host
 
 # ============================================
-# Welcome Message
+# 🎉 Enhanced Welcome Screen
 # ============================================
-Write-Host ""
-Write-Host "PowerShell $($PSVersionTable.PSVersion.ToString())" -ForegroundColor Cyan
-Write-Host "Optimized for Claude Code" -ForegroundColor DarkGray
-Write-Host ""
-Write-Host "Quick commands: " -NoNewline -ForegroundColor DarkGray
-Write-Host "qs" -NoNewline -ForegroundColor Yellow
-Write-Host " (quick status) | " -NoNewline -ForegroundColor DarkGray
-Write-Host "tree" -NoNewline -ForegroundColor Yellow
-Write-Host " (structure) | " -NoNewline -ForegroundColor DarkGray
-Write-Host "test" -NoNewline -ForegroundColor Yellow
-Write-Host "/" -NoNewline -ForegroundColor DarkGray
-Write-Host "build" -NoNewline -ForegroundColor Yellow
-Write-Host " (run tests/build)" -ForegroundColor DarkGray
-Write-Host ""
+function Show-WelcomeScreen {
+    Clear-Host
+
+    # ASCII Art Header
+    Write-Host ""
+    Write-Host "╔══════════════════════════════════════════════════════════╗" -ForegroundColor DarkCyan
+    Write-Host "║                 🚀 Welcome to PowerShell                ║" -ForegroundColor Cyan
+    Write-Host "║              Enhanced Visual Experience 🖼️              ║" -ForegroundColor Cyan
+    Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor DarkCyan
+    Write-Host ""
+
+    # System Info with Visual Flair
+    $psVersion = $PSVersionTable.PSVersion.ToString()
+    $currentTime = Get-Date -Format "dddd, MMMM dd, yyyy HH:mm"
+    Write-Host "┌─ 💻 System Information" -ForegroundColor DarkGray
+    Write-Host "│" -ForegroundColor DarkGray
+    Write-Host "│  📅 $currentTime" -ForegroundColor White
+    Write-Host "│  🟢 PowerShell $psVersion" -ForegroundColor Green
+    Write-Host "│  👤 User: $env:USERNAME" -ForegroundColor Yellow
+    Write-Host "│  📁 Location: $(Get-Location)" -ForegroundColor Cyan
+    Write-Host "│" -ForegroundColor DarkGray
+
+    # Quick Commands Section
+    Write-Host "├─ ⚡ Quick Commands" -ForegroundColor DarkGray
+    Write-Host "│" -ForegroundColor DarkGray
+    Write-Host "│  📊 " -NoNewline -ForegroundColor DarkGray
+    Write-Host "qs" -ForegroundColor Yellow -NoNewline
+    Write-Host "     Quick project status" -ForegroundColor DarkGray
+    Write-Host "│  🌳 " -NoNewline -ForegroundColor DarkGray
+    Write-Host "tree" -ForegroundColor Yellow -NoNewline
+    Write-Host "   Project structure" -ForegroundColor DarkGray
+    Write-Host "│  🧪 " -NoNewline -ForegroundColor DarkGray
+    Write-Host "test" -ForegroundColor Yellow -NoNewline
+    Write-Host "   Run tests" -ForegroundColor DarkGray
+    Write-Host "│  🔨 " -NoNewline -ForegroundColor DarkGray
+    Write-Host "build" -ForegroundColor Yellow -NoNewline
+    Write-Host "  Build project" -ForegroundColor DarkGray
+    Write-Host "│  🔍 " -NoNewline -ForegroundColor DarkGray
+    Write-Host "grep" -ForegroundColor Yellow -NoNewline
+    Write-Host "   Search in files" -ForegroundColor DarkGray
+    Write-Host "│" -ForegroundColor DarkGray
+
+    # Tips Section
+    Write-Host "├─ 💡 Pro Tips" -ForegroundColor DarkGray
+    Write-Host "│" -ForegroundColor DarkGray
+    Write-Host "│  🎨 " -NoNewline -ForegroundColor DarkGray
+    Write-Host "Visual enhancements active!" -ForegroundColor Green
+    Write-Host "│  ⚡ " -NoNewline -ForegroundColor DarkGray
+    Write-Host "Press Tab for autocompletion" -ForegroundColor Cyan
+    Write-Host "│  ⬆️⬇️ " -NoNewline -ForegroundColor DarkGray
+    Write-Host "Use arrow keys to search history" -ForegroundColor Cyan
+    Write-Host "│  📝 " -NoNewline -ForegroundColor DarkGray
+    Write-Host "Type 'help' for more commands" -ForegroundColor Cyan
+    Write-Host "│" -ForegroundColor DarkGray
+    Write-Host "└─ Ready to code! 🚀" -ForegroundColor Green
+    Write-Host ""
+}
+
+# Show welcome screen on first load
+Show-WelcomeScreen
