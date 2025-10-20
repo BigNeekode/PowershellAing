@@ -1,0 +1,139 @@
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04">
+  <Obj RefId="0">
+    <TN RefId="0">
+      <T>Microsoft.PowerShell.Commands.PSRepositoryItemInfo</T>
+      <T>System.Management.Automation.PSCustomObject</T>
+      <T>System.Object</T>
+    </TN>
+    <MS>
+      <S N="Name">PSMenu</S>
+      <Version N="Version">0.2.0</Version>
+      <S N="Type">Module</S>
+      <S N="Description">Powershell module to generate interactive console menu._x000D__x000A_    _x000D__x000A_    Supports:_x000D__x000A_    - Multiselection_x000D__x000A_    - Paging_x000D__x000A_    - Objects_x000D__x000A_    - Custom rendering_x000D__x000A_    - Rendering callback_x000D__x000A_    _x000D__x000A_    Check for examples on how to use it on Github!</S>
+      <S N="Author">Sebastiaan Dammann</S>
+      <S N="CompanyName">Sebazzz</S>
+      <S N="Copyright">(c) Damsteen.nl</S>
+      <DT N="PublishedDate">2024-02-22T15:54:57+07:00</DT>
+      <Obj N="InstalledDate" RefId="1">
+        <DT>2025-10-20T17:21:34.0858205+07:00</DT>
+        <MS>
+          <Obj N="DisplayHint" RefId="2">
+            <TN RefId="1">
+              <T>Microsoft.PowerShell.Commands.DisplayHintType</T>
+              <T>System.Enum</T>
+              <T>System.ValueType</T>
+              <T>System.Object</T>
+            </TN>
+            <ToString>DateTime</ToString>
+            <I32>2</I32>
+          </Obj>
+        </MS>
+      </Obj>
+      <Nil N="UpdatedDate" />
+      <Nil N="LicenseUri" />
+      <URI N="ProjectUri">https://github.com/Sebazzz/PSMenu</URI>
+      <Nil N="IconUri" />
+      <Obj N="Tags" RefId="3">
+        <TN RefId="2">
+          <T>System.Object[]</T>
+          <T>System.Array</T>
+          <T>System.Object</T>
+        </TN>
+        <LST>
+          <S>Menu</S>
+          <S>Console</S>
+          <S>Interactive</S>
+          <S>PSModule</S>
+        </LST>
+      </Obj>
+      <Obj N="Includes" RefId="4">
+        <TN RefId="3">
+          <T>System.Collections.Hashtable</T>
+          <T>System.Object</T>
+        </TN>
+        <DCT>
+          <En>
+            <S N="Key">Function</S>
+            <Obj N="Value" RefId="5">
+              <TNRef RefId="2" />
+              <LST>
+                <S>Get-MenuSeparator</S>
+                <S>Show-Menu</S>
+              </LST>
+            </Obj>
+          </En>
+          <En>
+            <S N="Key">Workflow</S>
+            <Obj N="Value" RefId="6">
+              <TNRef RefId="2" />
+              <LST />
+            </Obj>
+          </En>
+          <En>
+            <S N="Key">DscResource</S>
+            <Ref N="Value" RefId="6" />
+          </En>
+          <En>
+            <S N="Key">Command</S>
+            <Obj N="Value" RefId="7">
+              <TNRef RefId="2" />
+              <LST>
+                <S>Get-MenuSeparator</S>
+                <S>Show-Menu</S>
+              </LST>
+            </Obj>
+          </En>
+          <En>
+            <S N="Key">Cmdlet</S>
+            <Ref N="Value" RefId="6" />
+          </En>
+          <En>
+            <S N="Key">RoleCapability</S>
+            <Ref N="Value" RefId="6" />
+          </En>
+        </DCT>
+      </Obj>
+      <Nil N="PowerShellGetFormatVersion" />
+      <S N="ReleaseNotes">VSCode console support</S>
+      <Obj N="Dependencies" RefId="8">
+        <TNRef RefId="2" />
+        <LST />
+      </Obj>
+      <S N="RepositorySourceLocation">https://www.powershellgallery.com/api/v2</S>
+      <S N="Repository">PSGallery</S>
+      <S N="PackageManagementProvider">NuGet</S>
+      <Obj N="AdditionalMetadata" RefId="9">
+        <TN RefId="4">
+          <T>System.Management.Automation.PSCustomObject</T>
+          <T>System.Object</T>
+        </TN>
+        <MS>
+          <S N="copyright">(c) Damsteen.nl</S>
+          <S N="description">Powershell module to generate interactive console menu._x000D__x000A_    _x000D__x000A_    Supports:_x000D__x000A_    - Multiselection_x000D__x000A_    - Paging_x000D__x000A_    - Objects_x000D__x000A_    - Custom rendering_x000D__x000A_    - Rendering callback_x000D__x000A_    _x000D__x000A_    Check for examples on how to use it on Github!</S>
+          <S N="requireLicenseAcceptance">False</S>
+          <S N="releaseNotes">VSCode console support</S>
+          <S N="isLatestVersion">True</S>
+          <S N="isAbsoluteLatestVersion">True</S>
+          <S N="versionDownloadCount">66843</S>
+          <S N="downloadCount">76774</S>
+          <S N="packageSize">12038</S>
+          <S N="published">22/02/2024 15:54:57 +07:00</S>
+          <S N="created">22/02/2024 15:54:57 +07:00</S>
+          <S N="lastUpdated">20/10/2025 09:00:00 +07:00</S>
+          <S N="tags">Menu Console Interactive PSModule PSFunction_Get-MenuSeparator PSCommand_Get-MenuSeparator PSFunction_Show-Menu PSCommand_Show-Menu PSIncludes_Function</S>
+          <S N="developmentDependency">False</S>
+          <S N="updated">2025-10-20T09:00:00Z</S>
+          <S N="NormalizedVersion">0.2.0</S>
+          <S N="Authors">Sebastiaan Dammann</S>
+          <S N="IsPrerelease">false</S>
+          <S N="ItemType">Module</S>
+          <S N="FileList">PSMenu.nuspec|PSMenu.psm1|Private\Format-MenuItem.ps1|Private\Get-CalculatedPageIndexNumber.ps1|Private\Get-ConsoleHeight.ps1|Private\Get-PositionWithVKey.ps1|Private\Get-WrappedPosition.ps1|Private\Read-VKey.ps1|Private\Test-HostSupported.ps1|Private\Test-Input.ps1|Private\Test-MenuItemArray.ps1|Private\Test-MenuSeparator.ps1|Private\Toggle-Selection.ps1|Private\Write-Menu.ps1|Public\Get-MenuSeparator.ps1|Public\Show-Menu.ps1|PSMenu.psd1</S>
+          <S N="GUID">652b2326-2d29-4e86-8149-03828d75503e</S>
+          <S N="PowerShellVersion">4.0</S>
+          <S N="CompanyName">Damsteen.nl</S>
+        </MS>
+      </Obj>
+      <S N="InstalledLocation">C:\Users\Game 01\Documents\PowerShell\Modules\PSMenu\0.2.0</S>
+    </MS>
+  </Obj>
+</Objs>

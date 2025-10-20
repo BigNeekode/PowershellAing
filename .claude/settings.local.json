@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe -NoProfile -Command \". .\\Microsoft.PowerShell_profile.ps1\")",
+      "Bash(powershell.exe -NoProfile -Command \"$content = Get-Content ''Microsoft.PowerShell_profile.ps1'' -Raw -Encoding UTF8; Set-Content ''Microsoft.PowerShell_profile.ps1'' -Value $content -Encoding UTF8\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

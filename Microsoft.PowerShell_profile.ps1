@@ -63,46 +63,81 @@ function Show-Progress {
 # Enhanced Module Management
 # ============================================
 
-# 🚀 Auto-install and import UX enhancement modules
+# 🚀 Module list for enhanced UX features
 $modulesToInstall = @(
     # Core functionality
-    @{Name = "PSReadLine"; RequiredVersion = "2.2.6"},
-    @{Name = "Terminal-Icons"; RequiredVersion = "0.11.0"},
-    @{Name = "posh-git"; RequiredVersion = "1.1.0"},
+    @{Name = "PSReadLine"; RequiredVersion = $null},              # Use latest version
+    @{Name = "Terminal-Icons"; RequiredVersion = $null},
+    @{Name = "posh-git"; RequiredVersion = $null},
 
     # UX Enhancement modules
-    @{Name = "PSWriteColor"; RequiredVersion = "1.0.1"},           # Enhanced text coloring
-    @{Name = "PSFzf"; RequiredVersion = "2.5.15"},                # Fuzzy finder
-    @{Name = "PSScriptAnalyzer"; RequiredVersion = "1.21.0"},     # Code analysis
-    @{Name = "ImportExcel"; RequiredVersion = "7.8.6"},           # Excel file handling
+    @{Name = "PSWriteColor"; RequiredVersion = $null},            # Enhanced text coloring
+    @{Name = "PSFzf"; RequiredVersion = $null},                   # Fuzzy finder (install latest)
+    @{Name = "PSScriptAnalyzer"; RequiredVersion = $null},        # Code analysis
+    @{Name = "ImportExcel"; RequiredVersion = $null},             # Excel file handling
+    @{Name = "BurntToast"; RequiredVersion = $null},              # Windows notifications
+    @{Name = "PSMenu"; RequiredVersion = $null},                # Interactive menus
+    @{Name = "PSCalendar"; RequiredVersion = $null} 
 
-    # Optional but useful modules (install if available)
-    @{Name = "BurntToast"; RequiredVersion = "0.8.5"},            # Windows notifications
-    @{Name = "PSMenu"; RequiredVersion = "1.4.1"},                # Interactive menus
-    @{Name = "PSCalendar"; RequiredVersion = "1.0.0"}             # Calendar utilities
+    # Note: PSMenu and PSCalendar modules have been removed as they are not available in PSGallery
+    # You can add them back if you find alternative names or versions
 )
 
+# Smart module loading - only import if already installed (no auto-install on every startup)
 foreach ($module in $modulesToInstall) {
     $moduleName = $module.Name
-    $requiredVersion = $module.RequiredVersion
-
-    if (-not (Get-Module -Name $moduleName -ListAvailable)) {
-        Write-Host "📦 Installing module: " -ForegroundColor Yellow -NoNewline
-        Write-Host "$moduleName" -ForegroundColor White -NoNewline
-        Write-Host " (v$requiredVersion)..." -ForegroundColor DarkGray
-        try {
-            Install-Module -Name $moduleName -RequiredVersion $requiredVersion -Scope CurrentUser -Force -ErrorAction Stop
-            Show-Success "$moduleName installed successfully"
+    if (Get-Module -Name $moduleName -ListAvailable) {
+        if (-not (Get-Module -Name $moduleName)) {
+            try {
+                Import-Module $moduleName -ErrorAction Stop
+            }
+            catch {
+                # Silently skip modules that fail to load (e.g., PSFzf without fzf binary)
+                # The specific module sections below will show warnings if needed
+            }
         }
-        catch {
-            Show-Error "Failed to install $moduleName`: $($_.Exception.Message)"
-        }
-    }
-
-    if (-not (Get-Module -Name $moduleName)) {
-        Import-Module $moduleName -ErrorAction SilentlyContinue
     }
 }
+
+# Manual install function - call this explicitly when you want to install missing modules
+function Install-ProfileModules {
+    Write-Host "🚀 Installing PowerShell Profile Enhancement Modules..." -ForegroundColor Cyan
+    Write-Host ""
+
+    foreach ($module in $global:modulesToInstall) {
+        $moduleName = $module.Name
+        $requiredVersion = $module.RequiredVersion
+
+        if (-not (Get-Module -Name $moduleName -ListAvailable)) {
+            Write-Host "📦 Installing module: " -ForegroundColor Yellow -NoNewline
+            Write-Host "$moduleName" -ForegroundColor White -NoNewline
+            if ($requiredVersion) {
+                Write-Host " (v$requiredVersion)..." -ForegroundColor DarkGray
+            } else {
+                Write-Host " (latest version)..." -ForegroundColor DarkGray
+            }
+            try {
+                if ($requiredVersion) {
+                    Install-Module -Name $moduleName -RequiredVersion $requiredVersion -Scope CurrentUser -Force -ErrorAction Stop
+                } else {
+                    Install-Module -Name $moduleName -Scope CurrentUser -Force -ErrorAction Stop
+                }
+                Show-Success "$moduleName installed successfully"
+            }
+            catch {
+                Show-Error "Failed to install $moduleName`: $($_.Exception.Message)"
+            }
+        } else {
+            Write-Host "✓ $moduleName already installed" -ForegroundColor Green
+        }
+    }
+
+    Write-Host ""
+    Write-Host "🎉 Module installation complete! Restart PowerShell to use new modules." -ForegroundColor Green
+}
+
+# Store module list globally for Install-ProfileModules function
+$global:modulesToInstall = $modulesToInstall
 
 # Function to install any missing module
 function Install-MissingModule {
@@ -852,7 +887,7 @@ function Git-SetupStream {
     git config user.email $Email
     git config user.name $Name
     git config core.editor "code --wait"
-    Write-Host "Git configured for $Name <$Email>" -ForegroundColor Green
+    Write-Host "Git configured for $Name ``<$Email``>" -ForegroundColor Green
 }
 
 # Aliases for Claude-friendly commands
@@ -860,10 +895,10 @@ Set-Alias -Name tree -Value Show-Tree -ErrorAction SilentlyContinue
 Set-Alias -Name gss -Value Show-GitStatus -ErrorAction SilentlyContinue
 Set-Alias -Name pinfo -Value Show-ProjectInfo -ErrorAction SilentlyContinue
 Set-Alias -Name qs -Value Show-QuickStatus -ErrorAction SilentlyContinue
-Set-Alias -Name test -Value Run-Tests -ErrorAction SilentlyContinue
+Set-Alias -Name run-test -Value Run-Tests -ErrorAction SilentlyContinue  # Changed from 'test' to avoid conflicts
 Set-Alias -Name build -Value Run-Build -ErrorAction SilentlyContinue
-Set-Alias -Name cat -Value Show-File -ErrorAction SilentlyContinue
-Set-Alias -Name grep -Value Search-Content -ErrorAction SilentlyContinue
+Set-Alias -Name show-file -Value Show-File -ErrorAction SilentlyContinue  # Changed from 'cat' to avoid conflicts
+Set-Alias -Name search -Value Search-Content -ErrorAction SilentlyContinue  # Changed from 'grep' to avoid conflicts
 
 # Development workflow aliases
 Set-Alias -Name install-pkgs -Value Install-Packages -ErrorAction SilentlyContinue
@@ -1071,7 +1106,7 @@ function Set-RegistryValue {
 
 # System aliases
 Set-Alias -Name top -Value Show-TopProcesses -ErrorAction SilentlyContinue
-Set-Alias -Name kill -Value Kill-ProcessByName -ErrorAction SilentlyContinue
+Set-Alias -Name killproc -Value Kill-ProcessByName -ErrorAction SilentlyContinue  # Changed from 'kill' to avoid conflicts
 Set-Alias -Name services -Value Show-ServiceStatus -ErrorAction SilentlyContinue
 Set-Alias -Name netinfo -Value Show-NetworkInfo -ErrorAction SilentlyContinue
 Set-Alias -Name perf -Value Show-SystemPerformance -ErrorAction SilentlyContinue
@@ -1305,16 +1340,16 @@ function Show-FilesDetailed {
 
         # Enhanced file type detection with icons
         $fileIcon = switch ($_.Extension) {
-            ".exe" { "⚙️" }
+            ".exe" { "⚙" }
             ".dll" { "📚" }
             ".ps1" { "🔷" }
             ".md" { "📝" }
-            ".json" { "⚙️" }
+            ".json" { "⚙" }
             ".log" { "📜" }
             ".txt" { "📄" }
-            ".jpg" { "🖼️" }
-            ".png" { "🖼️" }
-            ".gif" { "🖼️" }
+            ".jpg" { "🖼" }
+            ".png" { "🖼" }
+            ".gif" { "🖼" }
             ".zip" { "📦" }
             ".rar" { "📦" }
             ".7z" { "📦" }
@@ -1333,23 +1368,23 @@ function Show-FilesDetailed {
             ".ts" { "📘" }
             ".py" { "🐍" }
             ".java" { "☕" }
-            ".cpp" { "⚙️" }
-            ".c" { "⚙️" }
-            ".h" { "⚙️" }
+            ".cpp" { "⚙" }
+            ".c" { "⚙" }
+            ".h" { "⚙" }
             ".cs" { "💎" }
             ".php" { "🐘" }
             ".rb" { "💎" }
             ".go" { "🐹" }
             ".rs" { "🦀" }
             ".sh" { "📜" }
-            ".bat" { "⚙️" }
-            ".cmd" { "⚙️" }
-            ".yml" { "⚙️" }
-            ".yaml" { "⚙️" }
-            ".xml" { "⚙️" }
-            ".sql" { "🗃️" }
-            ".db" { "🗃️" }
-            ".sqlite" { "🗃️" }
+            ".bat" { "⚙" }
+            ".cmd" { "⚙" }
+            ".yml" { "⚙" }
+            ".yaml" { "⚙" }
+            ".xml" { "⚙" }
+            ".sql" { "🗃" }
+            ".db" { "🗃" }
+            ".sqlite" { "🗃" }
             Default {
                 if ($_.PSIsContainer) { "📁" } else { "📄" }
             }
@@ -1396,6 +1431,7 @@ function Show-FilesDetailed {
 }
 
 # Notification system for long-running tasks
+# Note: This is the base version. Enhanced version with BurntToast is defined later if module is available
 function Invoke-WithNotification {
     param(
         [ScriptBlock]$ScriptBlock,
@@ -1425,13 +1461,13 @@ function Invoke-WithNotification {
 }
 
 # Enhanced aliases with safety
-Set-Alias -Name rm -Value Remove-ItemSafe -ErrorAction SilentlyContinue
-Set-Alias -Name mkdir -Value New-Directory -ErrorAction SilentlyContinue
+Set-Alias -Name rms -Value Remove-ItemSafe -ErrorAction SilentlyContinue  # Changed from 'rm' to avoid conflicts
+Set-Alias -Name mkd -Value New-Directory -ErrorAction SilentlyContinue  # Changed from 'mkdir' to avoid conflicts
 Set-Alias -Name touch -Value New-File -ErrorAction SilentlyContinue
 Set-Alias -Name bookmarks -Value Show-DirectoryBookmarks -ErrorAction SilentlyContinue
 Set-Alias -Name hist -Value Show-CommandHistory -ErrorAction SilentlyContinue
 Set-Alias -Name search-hist -Value Search-CommandHistory -ErrorAction SilentlyContinue
-Set-Alias -Name ls-detailed -Value Show-FilesDetailed -ErrorAction SilentlyContinue
+Set-Alias -Name lsd -Value Show-FilesDetailed -ErrorAction SilentlyContinue  # Changed from 'ls-detailed' for brevity
 
 # Clear screen on startup (optional - comment out if you don't want this)
 # Clear-Host
@@ -1503,7 +1539,8 @@ function Show-WelcomeScreen {
 
 # Enhanced Text Formatting with PSWriteColor
 if (Get-Module -Name PSWriteColor -ListAvailable) {
-    Import-Module PSWriteColor
+    try {
+        Import-Module PSWriteColor -ErrorAction Stop
 
     # Enhanced message functions with better colors
     function Show-EnhancedMessage {
@@ -1530,6 +1567,10 @@ if (Get-Module -Name PSWriteColor -ListAvailable) {
             Write-Color -Text $chars[$i] -Color $colors[$i % $colors.Length] -NoNewLine
         }
         Write-Host ""
+    }
+    }
+    catch {
+        Write-Host "⚠️  Could not load PSWriteColor module" -ForegroundColor Yellow
     }
 }
 
@@ -1573,10 +1614,11 @@ function Show-ProjectMenu {
 # ============================================
 
 if (Get-Module -Name PSFzf -ListAvailable) {
-    Import-Module PSFzf
+    try {
+        Import-Module PSFzf -ErrorAction Stop
 
-    # Enhanced file finder with preview
-    function Find-FileFuzzy {
+        # Enhanced file finder with preview
+        function Find-FileFuzzy {
         param([string]$Path = ".")
 
         $result = Get-ChildItem -Path $Path -Recurse -File -ErrorAction SilentlyContinue |
@@ -1614,6 +1656,11 @@ if (Get-Module -Name PSFzf -ListAvailable) {
             Invoke-Expression $result
         }
     }
+    }
+    catch {
+        Write-Host "⚠️  PSFzf module loaded but fzf binary not found in PATH" -ForegroundColor Yellow
+        Write-Host "   Install fzf from: https://github.com/junegunn/fzf/releases" -ForegroundColor DarkGray
+    }
 }
 
 # ============================================
@@ -1621,7 +1668,8 @@ if (Get-Module -Name PSFzf -ListAvailable) {
 # ============================================
 
 if (Get-Module -Name BurntToast -ListAvailable) {
-    Import-Module BurntToast
+    try {
+        Import-Module BurntToast -ErrorAction Stop
 
     # Toast notification for long operations
     function Show-ToastNotification {
@@ -1668,6 +1716,10 @@ if (Get-Module -Name BurntToast -ListAvailable) {
             Show-Error "$TaskName failed: $($_.Exception.Message)"
         }
     }
+    }
+    catch {
+        Write-Host "⚠️  Could not load BurntToast module" -ForegroundColor Yellow
+    }
 }
 
 # ============================================
@@ -1675,7 +1727,8 @@ if (Get-Module -Name BurntToast -ListAvailable) {
 # ============================================
 
 if (Get-Module -Name ImportExcel -ListAvailable) {
-    Import-Module ImportExcel
+    try {
+        Import-Module ImportExcel -ErrorAction Stop
 
     # Export data to Excel with formatting
     function Export-DataToExcel {
@@ -1748,6 +1801,10 @@ if (Get-Module -Name ImportExcel -ListAvailable) {
         Write-Host "📊 Output: $ExcelPath" -ForegroundColor Green
         Write-Host "📈 Rows: $($data.Count)" -ForegroundColor Cyan
     }
+    }
+    catch {
+        Write-Host "⚠️  Could not load ImportExcel module" -ForegroundColor Yellow
+    }
 }
 
 # ============================================
@@ -1755,7 +1812,8 @@ if (Get-Module -Name ImportExcel -ListAvailable) {
 # ============================================
 
 if (Get-Module -Name PSScriptAnalyzer -ListAvailable) {
-    Import-Module PSScriptAnalyzer
+    try {
+        Import-Module PSScriptAnalyzer -ErrorAction Stop
 
     # Analyze current script
     function Analyze-CurrentScript {
@@ -1843,6 +1901,10 @@ if (Get-Module -Name PSScriptAnalyzer -ListAvailable) {
             Show-Warning "No PowerShell scripts found in $Path"
         }
     }
+    }
+    catch {
+        Write-Host "⚠️  Could not load PSScriptAnalyzer module" -ForegroundColor Yellow
+    }
 }
 
 # ============================================
@@ -1850,10 +1912,11 @@ if (Get-Module -Name PSScriptAnalyzer -ListAvailable) {
 # ============================================
 
 if (Get-Module -Name PSCalendar -ListAvailable) {
-    Import-Module PSCalendar
+    try {
+        Import-Module PSCalendar -ErrorAction Stop
 
-    # Show current month calendar
-    function Show-Calendar {
+    # Show current month calendar (wrapper for PSCalendar module)
+    function Show-CalendarView {
         param(
             [int]$Month = (Get-Date).Month,
             [int]$Year = (Get-Date).Year
@@ -1862,6 +1925,7 @@ if (Get-Module -Name PSCalendar -ListAvailable) {
         Write-Host "📅 Calendar: $(Get-Date -Month $Month -Year $Year -Format 'MMMM yyyy')" -ForegroundColor Cyan
         Write-Host "═" * 50 -ForegroundColor DarkCyan
 
+        # Use the PSCalendar module's Show-Calendar cmdlet
         Show-Calendar -Month $Month -Year $Year
 
         Write-Host ""
@@ -1895,6 +1959,10 @@ if (Get-Module -Name PSCalendar -ListAvailable) {
             }
         }
     }
+    }
+    catch {
+        Write-Host "⚠️  Could not load PSCalendar module" -ForegroundColor Yellow
+    }
 }
 
 # ============================================
@@ -1910,7 +1978,7 @@ Set-Alias -Name toast -Value Show-ToastNotification -ErrorAction SilentlyContinu
 Set-Alias -Name analyze -Value Analyze-CurrentScript -ErrorAction SilentlyContinue
 Set-Alias -Name format-code -Value Format-PowerShellCode -ErrorAction SilentlyContinue
 Set-Alias -Name script-health -Value Test-ScriptHealth -ErrorAction SilentlyContinue
-Set-Alias -Name calendar -Value Show-Calendar -ErrorAction SilentlyContinue
+Set-Alias -Name calendar -Value Show-CalendarView -ErrorAction SilentlyContinue  # Updated to use renamed function
 Set-Alias -Name events -Value Show-UpcomingEvents -ErrorAction SilentlyContinue
 Set-Alias -Name rainbow -Value Show-RainbowText -ErrorAction SilentlyContinue
 
