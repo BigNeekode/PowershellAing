@@ -11,11 +11,23 @@ Import-Module PSReadLine -ErrorAction SilentlyContinue
 # Enhanced Module Management
 # ============================================
 
-# Auto-install and import common modules
+# 🚀 Auto-install and import UX enhancement modules
 $modulesToInstall = @(
+    # Core functionality
     @{Name = "PSReadLine"; RequiredVersion = "2.2.6"},
     @{Name = "Terminal-Icons"; RequiredVersion = "0.11.0"},
-    @{Name = "posh-git"; RequiredVersion = "1.1.0"}
+    @{Name = "posh-git"; RequiredVersion = "1.1.0"},
+
+    # UX Enhancement modules
+    @{Name = "PSWriteColor"; RequiredVersion = "1.0.1"},           # Enhanced text coloring
+    @{Name = "PSFzf"; RequiredVersion = "2.5.15"},                # Fuzzy finder
+    @{Name = "PSScriptAnalyzer"; RequiredVersion = "1.21.0"},     # Code analysis
+    @{Name = "ImportExcel"; RequiredVersion = "7.8.6"},           # Excel file handling
+
+    # Optional but useful modules (install if available)
+    @{Name = "BurntToast"; RequiredVersion = "0.8.5"},            # Windows notifications
+    @{Name = "PSMenu"; RequiredVersion = "1.4.1"},                # Interactive menus
+    @{Name = "PSCalendar"; RequiredVersion = "1.0.0"}             # Calendar utilities
 )
 
 foreach ($module in $modulesToInstall) {
@@ -1478,6 +1490,436 @@ function Show-WelcomeScreen {
     Write-Host "│" -ForegroundColor DarkGray
     Write-Host "└─ Ready to code! 🚀" -ForegroundColor Green
     Write-Host ""
+}
+
+# ============================================
+# 🧩 Enhanced UX Modules Integration
+# ============================================
+
+# Enhanced Text Formatting with PSWriteColor
+if (Get-Module -Name PSWriteColor -ListAvailable) {
+    Import-Module PSWriteColor
+
+    # Enhanced message functions with better colors
+    function Show-EnhancedMessage {
+        param(
+            [string]$Message,
+            [string]$Status = "Info"
+        )
+
+        switch ($Status) {
+            "Success" { Write-Color -Text $Message -Color Green -StartTab 2 }
+            "Error" { Write-Color -Text $Message -Color Red -StartTab 2 }
+            "Warning" { Write-Color -Text $Message -Color Yellow -StartTab 2 }
+            "Info" { Write-Color -Text $Message -Color Cyan -StartTab 2 }
+            Default { Write-Color -Text $Message -Color White -StartTab 2 }
+        }
+    }
+
+    # Rainbow text for fun
+    function Show-RainbowText {
+        param([string]$Text)
+        $colors = @("Red", "Yellow", "Green", "Cyan", "Blue", "Magenta")
+        $chars = $Text.ToCharArray()
+        for ($i = 0; $i -lt $chars.Length; $i++) {
+            Write-Color -Text $chars[$i] -Color $colors[$i % $colors.Length] -NoNewLine
+        }
+        Write-Host ""
+    }
+}
+
+# ============================================
+# 🍱 Interactive Menu System
+# ============================================
+
+# Enhanced project launcher with visual menu
+function Show-ProjectMenu {
+    Write-Host "🚀 Project Launcher" -ForegroundColor Cyan
+    Write-Host "═" * 50 -ForegroundColor DarkCyan
+    Write-Host ""
+
+    $options = @(
+        @{Name = "📊 Quick Status"; Command = "Show-QuickStatus"},
+        @{Name = "🌳 Project Tree"; Command = "Show-Tree"},
+        @{Name = "🌿 Git Status"; Command = "Show-GitStatus"},
+        @{Name = "🧪 Run Tests"; Command = "Run-Tests"},
+        @{Name = "🔨 Build Project"; Command = "Run-Build"},
+        @{Name = "📦 Install Packages"; Command = "Install-Packages"},
+        @{Name = "🔍 Search Files"; Command = "Search-Content"},
+        @{Name = "⚙️  Settings"; Command = "Edit-Profile"}
+    )
+
+    for ($i = 0; $i -lt $options.Count; $i++) {
+        Write-Host ("{0,2}. {1}" -f ($i + 1), $options[$i].Name) -ForegroundColor Yellow
+    }
+
+    Write-Host ""
+    $choice = Read-Host "Select option (1-$($options.Count)) or 'q' to quit"
+
+    if ($choice -ne 'q' -and $choice -match '^\d+$' -and $choice -le $options.Count) {
+        $selected = $options[$choice - 1]
+        Write-Host "Executing: $($selected.Name)" -ForegroundColor Green
+        Invoke-Expression $selected.Command
+    }
+}
+
+# ============================================
+# 🎯 Fuzzy Finding with PSFzf
+# ============================================
+
+if (Get-Module -Name PSFzf -ListAvailable) {
+    Import-Module PSFzf
+
+    # Enhanced file finder with preview
+    function Find-FileFuzzy {
+        param([string]$Path = ".")
+
+        $result = Get-ChildItem -Path $Path -Recurse -File -ErrorAction SilentlyContinue |
+            Invoke-Fzf -Preview 'Get-Content {} -Head 10' -PreviewWindow 'right:50%:wrap'
+
+        if ($result) {
+            Write-Host "Selected: " -ForegroundColor Yellow -NoNewline
+            Write-Host $result.FullName -ForegroundColor Green
+            return $result
+        }
+    }
+
+    # Enhanced directory finder
+    function Find-DirectoryFuzzy {
+        param([string]$Path = ".")
+
+        $result = Get-ChildItem -Path $Path -Recurse -Directory -ErrorAction SilentlyContinue |
+            Invoke-Fzf -Preview 'Get-ChildItem {} -Force | Format-Table -AutoSize'
+
+        if ($result) {
+            Write-Host "Selected directory: " -ForegroundColor Yellow -NoNewline
+            Write-Host $result.FullName -ForegroundColor Green
+            Set-Location $result.FullName
+        }
+    }
+
+    # Enhanced history search
+    function Search-HistoryFuzzy {
+        $history = Get-History | Select-Object -ExpandProperty CommandLine
+        $result = $history | Invoke-Fzf -Preview 'Write-Host "Command: {}"' -PreviewWindow 'right:50%:wrap'
+
+        if ($result) {
+            Write-Host "Executing: " -ForegroundColor Yellow -NoNewline
+            Write-Host $result -ForegroundColor Green
+            Invoke-Expression $result
+        }
+    }
+}
+
+# ============================================
+# 🔔 Toast Notifications for Windows
+# ============================================
+
+if (Get-Module -Name BurntToast -ListAvailable) {
+    Import-Module BurntToast
+
+    # Toast notification for long operations
+    function Show-ToastNotification {
+        param(
+            [string]$Title = "PowerShell",
+            [string]$Message = "Operation completed",
+            [string]$Sound = "Default"
+        )
+
+        try {
+            New-BurntToastNotification -Text $Title, $Message -Sound $Sound -AppLogo "$env:windir\System32\WindowsPowerShell\v1.0\powershell.exe"
+        }
+        catch {
+            Write-Host "🔔 Notification: $Title - $Message" -ForegroundColor Cyan
+        }
+    }
+
+    # Enhanced long operation wrapper with notifications
+    function Invoke-WithNotification {
+        param(
+            [ScriptBlock]$ScriptBlock,
+            [string]$TaskName = "Task",
+            [switch]$NotifyOnComplete = $true
+        )
+
+        $startTime = Get-Date
+        Show-Progress -Activity "$TaskName starting..."
+
+        try {
+            & $ScriptBlock
+            $endTime = Get-Date
+            $duration = $endTime - $startTime
+
+            if ($duration.TotalSeconds -gt 3 -and $NotifyOnComplete) {
+                Show-ToastNotification -Title "Task Completed" -Message "$TaskName finished in $([math]::Round($duration.TotalSeconds, 1))s"
+            }
+
+            Show-Success "$TaskName completed ($([math]::Round($duration.TotalSeconds, 1))s)"
+        }
+        catch {
+            if ($NotifyOnComplete) {
+                Show-ToastNotification -Title "Task Failed" -Message "$TaskName encountered an error"
+            }
+            Show-Error "$TaskName failed: $($_.Exception.Message)"
+        }
+    }
+}
+
+# ============================================
+# 📊 Excel & CSV Utilities
+# ============================================
+
+if (Get-Module -Name ImportExcel -ListAvailable) {
+    Import-Module ImportExcel
+
+    # Export data to Excel with formatting
+    function Export-DataToExcel {
+        param(
+            [Parameter(ValueFromPipeline = $true)]
+            [object[]]$Data,
+            [string]$Path = "output.xlsx",
+            [string]$SheetName = "Data"
+        )
+
+        Begin {
+            $dataArray = @()
+        }
+
+        Process {
+            $dataArray += $Data
+        }
+
+        End {
+            if ($dataArray.Count -gt 0) {
+                $dataArray | Export-Excel -Path $Path -WorksheetName $SheetName -AutoSize -TableName "DataTable"
+                Show-Success "Data exported to Excel: $Path"
+                Write-Host "📊 Sheet: $SheetName | Rows: $($dataArray.Count)" -ForegroundColor Cyan
+            }
+        }
+    }
+
+    # Import Excel data with preview
+    function Import-ExcelData {
+        param(
+            [string]$Path,
+            [string]$SheetName = "Sheet1"
+        )
+
+        if (Test-Path $Path) {
+            $data = Import-Excel -Path $Path -WorksheetName $SheetName
+            Write-Host "📊 Preview of Excel data:" -ForegroundColor Cyan
+            $data | Select-Object -First 5 | Format-Table -AutoSize
+
+            $totalRows = $data.Count
+            Write-Host "📈 Total rows: $totalRows" -ForegroundColor Green
+
+            return $data
+        } else {
+            Show-Error "Excel file not found: $Path"
+        }
+    }
+
+    # Convert CSV to Excel
+    function Convert-CsvToExcel {
+        param(
+            [string]$CsvPath,
+            [string]$ExcelPath = ""
+        )
+
+        if (!(Test-Path $CsvPath)) {
+            Show-Error "CSV file not found: $CsvPath"
+            return
+        }
+
+        if ($ExcelPath -eq "") {
+            $ExcelPath = [IO.Path]::ChangeExtension($CsvPath, ".xlsx")
+        }
+
+        $data = Import-Csv -Path $CsvPath
+        $data | Export-Excel -Path $ExcelPath -AutoSize -TableName "ImportedData"
+
+        Show-Success "Converted CSV to Excel"
+        Write-Host "📄 Input: $CsvPath" -ForegroundColor White
+        Write-Host "📊 Output: $ExcelPath" -ForegroundColor Green
+        Write-Host "📈 Rows: $($data.Count)" -ForegroundColor Cyan
+    }
+}
+
+# ============================================
+# 🔍 Code Analysis Tools
+# ============================================
+
+if (Get-Module -Name PSScriptAnalyzer -ListAvailable) {
+    Import-Module PSScriptAnalyzer
+
+    # Analyze current script
+    function Analyze-CurrentScript {
+        $scriptPath = $MyInvocation.ScriptName
+        if ($scriptPath -and (Test-Path $scriptPath)) {
+            Write-Host "🔍 Analyzing: $scriptPath" -ForegroundColor Cyan
+            $results = Invoke-ScriptAnalyzer -Path $scriptPath
+
+            if ($results) {
+                $results | Format-Table RuleName, Severity, Message, Line -AutoSize
+                $errorCount = ($results | Where-Object Severity -eq "Error").Count
+                $warningCount = ($results | Where-Object Severity -eq "Warning").Count
+
+                Write-Host ""
+                Write-Host "📊 Summary:" -ForegroundColor Yellow
+                Write-Host "❌ Errors: $errorCount" -ForegroundColor $(if ($errorCount -gt 0) { "Red" } else { "Green" })
+                Write-Host "⚠️  Warnings: $warningCount" -ForegroundColor $(if ($warningCount -gt 0) { "Yellow" } else { "Green" })
+            } else {
+                Show-Success "No issues found in script analysis"
+            }
+        } else {
+            Show-Warning "No script file found to analyze"
+        }
+    }
+
+    # Format PowerShell code
+    function Format-PowerShellCode {
+        param(
+            [Parameter(ValueFromPipeline = $true)]
+            [string[]]$Code
+        )
+
+        Begin {
+            $allCode = ""
+        }
+
+        Process {
+            $allCode += $Code + "`n"
+        }
+
+        End {
+            try {
+                $formatted = Invoke-Formatter -ScriptDefinition $allCode
+                return $formatted
+            }
+            catch {
+                Show-Error "Failed to format code: $($_.Exception.Message)"
+                return $allCode
+            }
+        }
+    }
+
+    # Quick script health check
+    function Test-ScriptHealth {
+        param([string]$Path = ".")
+
+        Write-Host "🏥 Script Health Check for: $Path" -ForegroundColor Cyan
+        Write-Host "═" * 50 -ForegroundColor DarkCyan
+
+        $scripts = Get-ChildItem -Path $Path -Recurse -Include "*.ps1" -ErrorAction SilentlyContinue
+
+        if ($scripts) {
+            $totalScripts = $scripts.Count
+            $analyzed = 0
+            $totalIssues = 0
+
+            foreach ($script in $scripts) {
+                $results = Invoke-ScriptAnalyzer -Path $script.FullName
+                $issues = $results.Count
+                $totalIssues += $issues
+
+                if ($issues -gt 0) {
+                    Write-Host "📄 $($script.Name): " -NoNewline -ForegroundColor White
+                    Write-Host "$issues issues" -ForegroundColor $(if ($issues -gt 5) { "Red" } elseif ($issues -gt 2) { "Yellow" } else { "Green" })
+                }
+
+                $analyzed++
+            }
+
+            Write-Host ""
+            Write-Host "📊 Health Summary:" -ForegroundColor Yellow
+            Write-Host "📁 Scripts analyzed: $analyzed" -ForegroundColor White
+            Write-Host "❌ Total issues: $totalIssues" -ForegroundColor $(if ($totalIssues -gt 0) { "Red" } else { "Green" })
+        } else {
+            Show-Warning "No PowerShell scripts found in $Path"
+        }
+    }
+}
+
+# ============================================
+# 📅 Calendar & Scheduling Features
+# ============================================
+
+if (Get-Module -Name PSCalendar -ListAvailable) {
+    Import-Module PSCalendar
+
+    # Show current month calendar
+    function Show-Calendar {
+        param(
+            [int]$Month = (Get-Date).Month,
+            [int]$Year = (Get-Date).Year
+        )
+
+        Write-Host "📅 Calendar: $(Get-Date -Month $Month -Year $Year -Format 'MMMM yyyy')" -ForegroundColor Cyan
+        Write-Host "═" * 50 -ForegroundColor DarkCyan
+
+        Show-Calendar -Month $Month -Year $Year
+
+        Write-Host ""
+        $today = Get-Date
+        $daysInMonth = [DateTime]::DaysInMonth($Year, $Month)
+        $currentDay = if ($Month -eq $today.Month -and $Year -eq $today.Year) { $today.Day } else { $null }
+
+        if ($currentDay) {
+            Write-Host "🎯 Today is day $currentDay" -ForegroundColor Green
+        }
+    }
+
+    # Show upcoming events (placeholder for future integration)
+    function Show-UpcomingEvents {
+        param([int]$Days = 7)
+
+        Write-Host "📅 Next $Days days:" -ForegroundColor Cyan
+        Write-Host "═" * 50 -ForegroundColor DarkCyan
+
+        for ($i = 0; $i -lt $Days; $i++) {
+            $date = (Get-Date).AddDays($i)
+            $dayName = $date.ToString("dddd")
+            $dateStr = $date.ToString("MMM dd")
+
+            if ($i -eq 0) {
+                Write-Host "🎯 $dateStr ($dayName) - TODAY" -ForegroundColor Green
+            } elseif ($i -eq 1) {
+                Write-Host "⏰ $dateStr ($dayName) - TOMORROW" -ForegroundColor Yellow
+            } else {
+                Write-Host "📅 $dateStr ($dayName)" -ForegroundColor White
+            }
+        }
+    }
+}
+
+# ============================================
+# 🎮 Enhanced Aliases and Commands
+# ============================================
+
+# Enhanced aliases for new UX features
+Set-Alias -Name menu -Value Show-ProjectMenu -ErrorAction SilentlyContinue
+Set-Alias -Name find-file -Value Find-FileFuzzy -ErrorAction SilentlyContinue
+Set-Alias -Name find-dir -Value Find-DirectoryFuzzy -ErrorAction SilentlyContinue
+Set-Alias -Name search-history -Value Search-HistoryFuzzy -ErrorAction SilentlyContinue
+Set-Alias -Name toast -Value Show-ToastNotification -ErrorAction SilentlyContinue
+Set-Alias -Name analyze -Value Analyze-CurrentScript -ErrorAction SilentlyContinue
+Set-Alias -Name format-code -Value Format-PowerShellCode -ErrorAction SilentlyContinue
+Set-Alias -Name script-health -Value Test-ScriptHealth -ErrorAction SilentlyContinue
+Set-Alias -Name calendar -Value Show-Calendar -ErrorAction SilentlyContinue
+Set-Alias -Name events -Value Show-UpcomingEvents -ErrorAction SilentlyContinue
+Set-Alias -Name rainbow -Value Show-RainbowText -ErrorAction SilentlyContinue
+
+# Enhanced command with notification
+function Update-AllModulesWithNotification {
+    param([switch]$Notify = $true)
+
+    if ($Notify -and (Get-Module -Name BurntToast -ListAvailable)) {
+        Invoke-WithNotification -ScriptBlock {
+            Update-AllModules
+        } -TaskName "Module Update" -NotifyOnComplete $true
+    } else {
+        Update-AllModules
+    }
 }
 
 # Show welcome screen on first load
