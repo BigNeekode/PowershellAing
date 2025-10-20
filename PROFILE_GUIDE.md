@@ -1,9 +1,26 @@
-# PowerShell Profile Guide
+# 🚀 Enhanced PowerShell Profile Guide
 
-Complete guide to using your Claude Code-optimized PowerShell profile.
+Complete guide to using your visually enhanced, Claude Code-optimized PowerShell profile.
+
+## ✨ What's New - Visual Enhancements
+
+🎨 **Beautiful Visual Interface**
+- Stunning prompt with Unicode icons and structured layout
+- Animated progress indicators and visual status feedback
+- Comprehensive file type icons for better file identification
+- Modern welcome screen with ASCII art borders
+- Enhanced color scheme throughout all functions
+
+🎯 **Key Visual Features**
+- 📊 Enhanced Quick Status with project icons and visual hierarchy
+- 🌈 Improved PSReadLine colors for better syntax highlighting
+- ⚡ Visual status indicators (✅❌⚠️ℹ️) throughout
+- 📁 Rich file listings with 40+ file type icons
+- 🎉 Welcome screen with organized sections and tips
 
 ## Table of Contents
 - [Quick Start](#quick-start)
+- [Visual Enhancements](#visual-enhancements)
 - [Claude Code Optimizations](#claude-code-optimizations)
 - [Navigation Commands](#navigation-commands)
 - [Git Commands](#git-commands)
@@ -14,31 +31,104 @@ Complete guide to using your Claude Code-optimized PowerShell profile.
 
 ---
 
+## 🎨 Visual Enhancements
+
+Your PowerShell profile now features a modern, visually appealing interface with enhanced usability.
+
+### Enhanced Prompt Display
+The prompt now shows:
+- 👤 **User info** with computer name
+- 📁 **Current directory** with visual path indicators
+- 🏠 **Home directory detection** with special formatting
+- 🌿 **Git branch** with status indicators (✅ clean, ✏️ modified)
+- 🎯 **Structured layout** with visual borders
+
+**Example:**
+```
+┌─ 👤 Game 01 💻 DESKTOP-ABC
+│  📁 C:\Projects\MyApp 📁src
+│  🌿 main ✅
+└─ ▶
+```
+
+### Visual Status Indicators
+Throughout the profile, you'll see consistent visual indicators:
+- ✅ **Success** operations
+- ❌ **Error** conditions
+- ⚠️ **Warnings** and alerts
+- ℹ️ **Information** messages
+- 📦 **Installation** processes
+- 🔧 **Progress** indicators
+
+### Enhanced File Listings
+The `ls-detailed` command now shows:
+- 📁 **Directory icons** for folders
+- 🔷 **Script files** (.ps1, .js, .py, etc.)
+- 📝 **Documentation** (.md, .txt)
+- 🖼️ **Media files** (.jpg, .png, .mp4)
+- 📦 **Archives** (.zip, .rar)
+- ⚙️ **Configuration** (.json, .xml)
+- And 30+ more file type icons!
+
+### Enhanced Quick Status
+The `qs` command now displays:
+- 📊 **Visual project information** with icons
+- 🟢 **Node.js projects** detection
+- 🐍 **Python projects** detection
+- 🦀 **Rust projects** detection
+- 💎 **C#/.NET projects** detection
+- 🐹 **Go projects** detection
+- 📁 **Generic projects**
+- 🕐 **Recently modified files** with timestamps
+
+### Progress Indicators
+Long-running operations now show:
+- ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ **Animated spinners**
+- █░░░ **Progress bars** with color coding
+- 📊 **Percentage completion**
+- 🎨 **Color-coded status** (red→yellow→green)
+
+### Welcome Screen
+First-time startup displays:
+- 🎉 **ASCII art borders** and organized layout
+- 💻 **System information** with current time
+- ⚡ **Quick command reference** with visual icons
+- 💡 **Pro tips** for enhanced usage
+- 🚀 **Ready message** with visual flair
+
+---
+
 ## Quick Start
 
 ### Most Useful Commands
 
 ```powershell
-# Get quick overview of your project
+# 🎨 Get visual project overview
 qs
 
-# See project structure
+# 🌳 See project structure with icons
 tree
 
-# Check git status (clean format)
+# 🌿 Check git status (enhanced visual)
 gss
 
-# Run tests (auto-detects framework)
+# 🧪 Run tests (auto-detects framework)
 test
 
-# Build project (auto-detects build system)
+# 🔨 Build project (auto-detects build system)
 build
 
-# Search for text in files
+# 🔍 Search for text in files
 grep "searchterm"
 
-# View file with line numbers
+# 📖 View file with line numbers and syntax highlighting
 cat filename.js
+
+# 📊 Enhanced file listing with icons
+ls-detailed
+
+# 📦 Install missing modules with visual feedback
+Install-MissingModule "ModuleName"
 ```
 
 ---
@@ -475,22 +565,43 @@ Get-ChildItem -Recurse | Where-Object { $_.Length -gt 1MB }
 
 | Command | Description |
 |---------|-------------|
-| `qs` | Quick status overview |
-| `tree` | Show directory structure |
-| `gss` | Git status (short) |
-| `cat file` | Show file with line numbers |
-| `grep "text"` | Search in files |
-| `test` | Run tests |
-| `build` | Build project |
-| `..` | Go up directory |
-| `ll` | List files |
-| `gs` | Git status |
-| `ga .` | Git add all |
-| `gc "msg"` | Git commit |
-| `gp` | Git push |
-| `pinfo` | Project info |
-| `Edit-Profile` | Edit this profile |
-| `Reload-Profile` | Reload after edits |
+| 🎨 **`qs`** | Enhanced visual status overview |
+| 🌳 **`tree`** | Show directory structure |
+| 🌿 **`gss`** | Git status with visual indicators |
+| 📖 **`cat file`** | Show file with line numbers & colors |
+| 🔍 **`grep "text"`** | Search in files |
+| 🧪 **`test`** | Run tests (auto-detect) |
+| 🔨 **`build`** | Build project (auto-detect) |
+| 📊 **`ls-detailed`** | Enhanced file listing with icons |
+| ⬆️ **`..`** | Go up directory |
+| 📁 **`ll`** | List files (table format) |
+| 🌿 **`gs`** | Git status |
+| ➕ **`ga .`** | Git add all |
+| 💾 **`gc "msg"`** | Git commit with message |
+| 🚀 **`gp`** | Git push |
+| 📋 **`pinfo`** | Detailed project info |
+| ⚙️ **`Edit-Profile`** | Edit this profile |
+| 🔄 **`Reload-Profile`** | Reload after edits |
+| 📦 **`Install-MissingModule`** | Install modules with visual feedback |
+| ✅ **`Show-Success`** | Show success message |
+| ❌ **`Show-Error`** | Show error message |
+| ⚠️ **`Show-Warning`** | Show warning message |
+| ℹ️ **`Show-Info`** | Show info message |
+
+### Visual Indicators Reference
+- ✅ **Success** - Operations completed successfully
+- ❌ **Error** - Operations failed or encountered issues
+- ⚠️ **Warning** - Important notices or cautions
+- ℹ️ **Info** - General information
+- 📦 **Installing** - Module installation in progress
+- 🔧 **Progress** - Long-running operations
+- 📁 **Directory** - Folder/directory indicator
+- 🔷 **PowerShell** - .ps1 script files
+- 📝 **Document** - .md, .txt files
+- 🐍 **Python** - .py files
+- 💎 **C#** - .cs files
+- 🟢 **Node.js** - npm projects
+- 🦀 **Rust** - Cargo projects
 
 ---
 
