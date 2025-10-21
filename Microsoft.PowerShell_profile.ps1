@@ -3,6 +3,24 @@
 # ============================================
 # 🎨 Visual enhancements with icons, colors, and modern UI
 # 🛠️  Optimized for Claude Code with clean output
+# 🔐 SSH/VPS ready with remote session detection
+
+# ============================================
+# 🔧 Remote Session Detection
+# ============================================
+$global:isRemoteSession = $false
+$global:isSSHSession = $false
+
+# Detect SSH session
+if ($env:SSH_CONNECTION -or $env:SSH_CLIENT -or $env:SSH_TTY) {
+    $global:isSSHSession = $true
+    $global:isRemoteSession = $true
+}
+
+# Detect PowerShell remoting
+if ($Host.Name -eq 'ServerRemoteHost') {
+    $global:isRemoteSession = $true
+}
 
 # Import modules with auto-installation and visual feedback
 Import-Module PSReadLine -ErrorAction SilentlyContinue
@@ -197,11 +215,26 @@ if (Get-Module -Name PSReadLine) {
 }
 
 # ============================================
-# 🎨 Enhanced Visual Prompt
+# 🎨 Enhanced Visual Prompt (SSH Optimized)
 # ============================================
 function prompt {
     $ESC = [char]27
     $location = Get-Location
+
+    # Smart path truncation for SSH
+    $locationPath = $location.Path
+    $homeDir = $env:USERPROFILE -replace '\\', '/'
+    if ($locationPath -like "$homeDir*") {
+        $locationPath = "~" + $locationPath.Substring($homeDir.Length)
+    }
+    
+    # Truncate very long paths for remote sessions
+    if ($global:isRemoteSession -and $locationPath.Length -gt 50) {
+        $parts = $locationPath -split '[\\/]'
+        if ($parts.Count -gt 3) {
+            $locationPath = $parts[0] + "/../" + $parts[-2] + "/" + $parts[-1]
+        }
+    }
 
     # Visual indicators with Unicode symbols
     $homeIcon = "🏠"
@@ -209,11 +242,14 @@ function prompt {
     $gitIcon = "🌿"
     $modifiedIcon = "✏️"
     $cleanIcon = "✅"
+    
+    # Connection type indicator
+    $connIcon = if ($global:isSSHSession) { "🔐" } elseif ($global:isRemoteSession) { "🔌" } else { "💻" }
 
-    # Get git branch if in a git repo
+    # Get git branch if in a git repo (with timeout for remote)
     $gitBranch = ""
-    if (Get-Command git -ErrorAction SilentlyContinue) {
-        $branch = git branch --show-current 2>$null
+    if (Test-Path .git) {
+        $branch = git rev-parse --abbrev-ref HEAD 2>$null
         if ($branch) {
             $gitStatus = git status --porcelain 2>$null
             $statusIcon = if ($gitStatus) { $modifiedIcon } else { $cleanIcon }
@@ -222,34 +258,38 @@ function prompt {
     }
 
     # Enhanced path display with icons
-    $pathParts = $location.Path.Split([IO.Path]::DirectorySeparatorChar)
     $isHome = $location.Path -eq $env:USERPROFILE
 
     if ($isHome) {
-        $pathDisplay = "$ESC[94m$homeIcon $($env:USERNAME)'s Home$ESC[0m"
+        $pathDisplay = "$ESC[94m$homeIcon ~$ESC[0m"
     } else {
-        $parentPath = [IO.Path]::GetDirectoryName($location.Path)
-        $currentFolder = [IO.Path]::GetFileName($location.Path)
-        $pathDisplay = "$ESC[96m$parentPath$ESC[0m$ESC[93m$([char]0x2F)$currentFolder$ESC[0m"
+        $pathDisplay = "$ESC[93m$folderIcon $locationPath$ESC[0m"
     }
 
     # Enhanced user display with visual flair
-    $userIcon = "👤"
-    $computerIcon = "💻"
-    $user = "$ESC[92m$userIcon $env:USERNAME$ESC[0m"
-    $computer = "$ESC[90m$computerIcon $env:COMPUTERNAME$ESC[0m"
+    $user = "$ESC[92m$env:USERNAME$ESC[0m"
+    $computer = "$ESC[96m$env:COMPUTERNAME$ESC[0m"
 
-    # Build enhanced prompt with better layout
-    Write-Host ""
-    Write-Host "┌─ $user $computer" -ForegroundColor DarkGray
-    Write-Host "│" -ForegroundColor DarkGray -NoNewline
-    Write-Host "  $pathDisplay$gitBranch" -NoNewline
-    Write-Host ""
-    Write-Host "└─" -ForegroundColor DarkGray -NoNewline
-
-    # Enhanced prompt symbol with colors
-    $promptSymbol = "$ESC[93m▶$ESC[0m"
-    return " $promptSymbol "
+    # Build enhanced prompt - compact for SSH, full for local
+    if ($global:isRemoteSession) {
+        # Compact prompt for SSH
+        Write-Host "$connIcon $user@$computer" -NoNewline -ForegroundColor DarkGray
+        Write-Host " $pathDisplay" -NoNewline
+        Write-Host $gitBranch -NoNewline
+        Write-Host ""
+        $promptSymbol = "$ESC[32m▶$ESC[0m"
+        return "$promptSymbol "
+    } else {
+        # Full prompt for local
+        Write-Host ""
+        Write-Host "┌─ $connIcon $user @ $computer" -ForegroundColor DarkGray
+        Write-Host "│" -ForegroundColor DarkGray -NoNewline
+        Write-Host "  $pathDisplay$gitBranch" -NoNewline
+        Write-Host ""
+        Write-Host "└─" -ForegroundColor DarkGray -NoNewline
+        $promptSymbol = "$ESC[93m▶$ESC[0m"
+        return " $promptSymbol "
+    }
 }
 
 # ============================================
@@ -1995,5 +2035,625 @@ function Update-AllModulesWithNotification {
     }
 }
 
+# ============================================
+# 🔐 SSH & VPS Management Functions
+# ============================================
+
+# SSH connection manager
+$global:SSHConnections = @{}
+$sshConfigFile = "$env:USERPROFILE\.ssh\ps_connections.json"
+
+function Load-SSHConnections {
+    if (Test-Path $sshConfigFile) {
+        try {
+            $global:SSHConnections = Get-Content $sshConfigFile | ConvertFrom-Json -AsHashtable
+        } catch {
+            $global:SSHConnections = @{}
+        }
+    }
+}
+
+function Save-SSHConnections {
+    $sshDir = Split-Path $sshConfigFile -Parent
+    if (-not (Test-Path $sshDir)) {
+        New-Item -ItemType Directory -Path $sshDir -Force | Out-Null
+    }
+    $global:SSHConnections | ConvertTo-Json | Set-Content $sshConfigFile
+}
+
+# Load saved connections on profile load
+Load-SSHConnections
+
+# Add SSH connection
+function Add-SSHConnection {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name,
+        
+        [Parameter(Mandatory)]
+        [string]$HostName,
+        
+        [string]$User = $env:USERNAME,
+        [int]$Port = 22,
+        [string]$IdentityFile = "",
+        [string]$Description = ""
+    )
+    
+    $global:SSHConnections[$Name] = @{
+        Host = $HostName
+        User = $User
+        Port = $Port
+        IdentityFile = $IdentityFile
+        Description = $Description
+        LastUsed = $null
+    }
+    
+    Save-SSHConnections
+    Show-Success "SSH connection '$Name' saved"
+    Write-Host "💡 Connect with: " -NoNewline -ForegroundColor DarkGray
+    Write-Host "sshc $Name" -ForegroundColor Yellow
+}
+
+# Get VPS status information
+function Get-VPSStatus {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
+    
+    if (-not $global:SSHConnections.ContainsKey($Name)) {
+        return $null
+    }
+    
+    $conn = $global:SSHConnections[$Name]
+    
+    # Build SSH command for system info
+    $sshBase = "ssh -p $($conn.Port)"
+    if ($conn.IdentityFile) { $sshBase += " -i `"$($conn.IdentityFile)`"" }
+    $sshBase += " $($conn.User)@$($conn.Host)"
+    
+    try {
+        # Get system stats - build command carefully to avoid escaping issues
+        $cmd1 = "echo ===STATS=== && uptime"
+        $cmd2 = "echo ===CPU=== && top -bn2 | grep 'Cpu(s)' | tail -1 | awk '{print 100-`$8}'"
+        $cmd3 = "echo ===MEM=== && free -m | awk 'NR==2{print `$3,`$2,`$3*100/`$2}'"
+        $cmd4 = "echo ===DISK=== && df -h / | awk 'NR==2{print `$3,`$2,`$5}'"
+        $cmd5 = "echo ===OS=== && grep PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '\`"'"
+        $cmd6 = "echo ===KERNEL=== && uname -r"
+        $cmd7 = "echo ===END==="
+        
+        $remoteCmd = "$cmd1 && $cmd2 && $cmd3 && $cmd4 && $cmd5 && $cmd6 && $cmd7"
+        $statsCmd = "$sshBase `"$remoteCmd`""
+        $output = Invoke-Expression $statsCmd 2>&1
+        
+        if ($output -match "===STATS===(.*?)===CPU===(.*?)===MEM===(.*?)===DISK===(.*?)===OS===(.*?)===KERNEL===(.*?)===END===") {
+            $uptime = $Matches[1].Trim()
+            $cpuUsage = [math]::Round([double]$Matches[2].Trim(), 1)
+            $memParts = $Matches[3].Trim() -split '\s+'
+            $diskParts = $Matches[4].Trim() -split '\s+'
+            $osName = $Matches[5].Trim()
+            $kernel = $Matches[6].Trim()
+            
+            return @{
+                Uptime = $uptime
+                CPU = $cpuUsage
+                MemUsed = $memParts[0]
+                MemTotal = $memParts[1]
+                MemPercent = [math]::Round([double]$memParts[2], 1)
+                DiskUsed = $diskParts[0]
+                DiskTotal = $diskParts[1]
+                DiskPercent = $diskParts[2]
+                OS = $osName
+                Kernel = $kernel
+            }
+        }
+    } catch {
+        return $null
+    }
+    
+    return $null
+}
+
+# Show VPS dashboard
+function Show-VPSDashboard {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name,
+        [hashtable]$Stats
+    )
+    
+    $conn = $global:SSHConnections[$Name]
+    
+    Write-Host ""
+    Write-Host "╔════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host "║            🖥️  VPS Status Dashboard                       ║" -ForegroundColor Cyan
+    Write-Host "╚════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Connection info
+    Write-Host "  🔐 " -NoNewline -ForegroundColor Green
+    Write-Host "Connection: " -NoNewline -ForegroundColor DarkGray
+    Write-Host "$Name " -NoNewline -ForegroundColor Yellow
+    Write-Host "($($conn.User)@$($conn.Host):$($conn.Port))" -ForegroundColor White
+    
+    if ($Stats) {
+        # OS Info
+        Write-Host "  🐧 " -NoNewline -ForegroundColor Blue
+        Write-Host "System:     " -NoNewline -ForegroundColor DarkGray
+        Write-Host "$($Stats.OS)" -ForegroundColor White
+        
+        Write-Host "  🔧 " -NoNewline -ForegroundColor Magenta
+        Write-Host "Kernel:     " -NoNewline -ForegroundColor DarkGray
+        Write-Host "$($Stats.Kernel)" -ForegroundColor White
+        
+        # Uptime
+        Write-Host "  ⏱️  " -NoNewline -ForegroundColor Cyan
+        Write-Host "Uptime:     " -NoNewline -ForegroundColor DarkGray
+        Write-Host "$($Stats.Uptime)" -ForegroundColor White
+        
+        Write-Host ""
+        Write-Host "  📊 Resource Usage:" -ForegroundColor Yellow
+        Write-Host "  ─────────────────────────────────────────────────────────" -ForegroundColor DarkGray
+        
+        # CPU Usage
+        $cpuColor = if ($Stats.CPU -gt 80) { "Red" } elseif ($Stats.CPU -gt 60) { "Yellow" } else { "Green" }
+        $cpuBar = [string]::new('█', [math]::Floor($Stats.CPU / 5)) + [string]::new('░', 20 - [math]::Floor($Stats.CPU / 5))
+        Write-Host "  💻 " -NoNewline -ForegroundColor $cpuColor
+        Write-Host "CPU:        " -NoNewline -ForegroundColor DarkGray
+        Write-Host "[$cpuBar] " -NoNewline -ForegroundColor $cpuColor
+        Write-Host "$($Stats.CPU)%" -ForegroundColor $cpuColor
+        
+        # Memory Usage
+        $memColor = if ($Stats.MemPercent -gt 80) { "Red" } elseif ($Stats.MemPercent -gt 60) { "Yellow" } else { "Green" }
+        $memBar = [string]::new('█', [math]::Floor($Stats.MemPercent / 5)) + [string]::new('░', 20 - [math]::Floor($Stats.MemPercent / 5))
+        Write-Host "  🧠 " -NoNewline -ForegroundColor $memColor
+        Write-Host "Memory:     " -NoNewline -ForegroundColor DarkGray
+        Write-Host "[$memBar] " -NoNewline -ForegroundColor $memColor
+        Write-Host "$($Stats.MemPercent)% " -NoNewline -ForegroundColor $memColor
+        Write-Host "($($Stats.MemUsed)M / $($Stats.MemTotal)M)" -ForegroundColor DarkGray
+        
+        # Disk Usage
+        $diskPercent = [double]($Stats.DiskPercent -replace '%', '')
+        $diskColor = if ($diskPercent -gt 80) { "Red" } elseif ($diskPercent -gt 60) { "Yellow" } else { "Green" }
+        $diskBar = [string]::new('█', [math]::Floor($diskPercent / 5)) + [string]::new('░', 20 - [math]::Floor($diskPercent / 5))
+        Write-Host "  💾 " -NoNewline -ForegroundColor $diskColor
+        Write-Host "Disk:       " -NoNewline -ForegroundColor DarkGray
+        Write-Host "[$diskBar] " -NoNewline -ForegroundColor $diskColor
+        Write-Host "$($Stats.DiskPercent) " -NoNewline -ForegroundColor $diskColor
+        Write-Host "($($Stats.DiskUsed) / $($Stats.DiskTotal))" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  ⚠️  " -NoNewline -ForegroundColor Yellow
+        Write-Host "Could not fetch system stats" -ForegroundColor DarkGray
+    }
+    
+    Write-Host ""
+    Write-Host "════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+    Write-Host ""
+}
+
+# Connect to saved SSH host
+function Connect-SSH {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name,
+        
+        [switch]$NoStatus
+    )
+    
+    if (-not $global:SSHConnections.ContainsKey($Name)) {
+        Show-Error "Connection '$Name' not found"
+        if ($global:SSHConnections.Count -gt 0) {
+            Write-Host "Available connections: " -NoNewline -ForegroundColor Yellow
+            Write-Host ($global:SSHConnections.Keys -join ', ') -ForegroundColor White
+        }
+        return
+    }
+    
+    $conn = $global:SSHConnections[$Name]
+    
+    Write-Host "🔐 Connecting to " -NoNewline -ForegroundColor Cyan
+    Write-Host "$Name" -NoNewline -ForegroundColor Yellow
+    Write-Host " ($($conn.Host))..." -ForegroundColor Cyan
+    
+    # Get VPS status before connecting (unless disabled)
+    if (-not $NoStatus) {
+        Write-Host "📊 Fetching VPS status..." -ForegroundColor DarkGray
+        $stats = Get-VPSStatus -Name $Name
+        Show-VPSDashboard -Name $Name -Stats $stats
+    }
+    
+    # Build SSH command
+    $sshCmd = "ssh -p $($conn.Port) $($conn.User)@$($conn.Host)"
+    
+    if ($conn.IdentityFile) {
+        $sshCmd += " -i `"$($conn.IdentityFile)`""
+    }
+    
+    # Update last used
+    $global:SSHConnections[$Name].LastUsed = (Get-Date).ToString("yyyy-MM-dd HH:mm")
+    Save-SSHConnections
+    
+    # Connect
+    Write-Host "🚀 Establishing SSH session..." -ForegroundColor Green
+    Write-Host ""
+    Invoke-Expression $sshCmd
+}
+
+# List saved connections
+function Get-SSHConnections {
+    if ($global:SSHConnections.Count -eq 0) {
+        Write-Host "No saved SSH connections" -ForegroundColor Yellow
+        Write-Host "💡 Add one with: " -NoNewline -ForegroundColor DarkGray
+        Write-Host "ssha <name> <host>" -ForegroundColor Yellow
+        return
+    }
+    
+    Write-Host ""
+    Write-Host "╔════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host "║         🔐 Saved SSH Connections                      ║" -ForegroundColor Cyan
+    Write-Host "╚════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host ""
+    
+    foreach ($conn in $global:SSHConnections.GetEnumerator() | Sort-Object Name) {
+        $details = $conn.Value
+        
+        Write-Host "🔐 " -NoNewline -ForegroundColor Green
+        Write-Host $conn.Key -NoNewline -ForegroundColor Yellow
+        Write-Host " → " -NoNewline -ForegroundColor DarkGray
+        Write-Host "$($details.User)@$($details.Host):$($details.Port)" -ForegroundColor White
+        
+        if ($details.Description) {
+            Write-Host "   📝 $($details.Description)" -ForegroundColor DarkGray
+        }
+        if ($details.IdentityFile) {
+            Write-Host "   🔑 Key: $($details.IdentityFile)" -ForegroundColor DarkGray
+        }
+        if ($details.LastUsed) {
+            Write-Host "   🕒 Last used: $($details.LastUsed)" -ForegroundColor DarkGray
+        }
+        Write-Host ""
+    }
+    
+    Write-Host "💡 Connect with: " -NoNewline -ForegroundColor DarkGray
+    Write-Host "sshc <name>" -ForegroundColor Yellow
+    Write-Host ""
+}
+
+# Remove SSH connection
+function Remove-SSHConnection {
+    param([Parameter(Mandatory)][string]$Name)
+    
+    if ($global:SSHConnections.ContainsKey($Name)) {
+        $global:SSHConnections.Remove($Name)
+        Save-SSHConnections
+        Show-Success "Connection '$Name' removed"
+    } else {
+        Show-Error "Connection '$Name' not found"
+    }
+}
+
+# Execute command on remote host
+function Invoke-SSHCommand {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Connection,
+        
+        [Parameter(Mandatory)]
+        [string]$Command
+    )
+    
+    if (-not $global:SSHConnections.ContainsKey($Connection)) {
+        Show-Error "Connection '$Connection' not found"
+        return
+    }
+    
+    $conn = $global:SSHConnections[$Connection]
+    $sshCmd = "ssh -p $($conn.Port)"
+    if ($conn.IdentityFile) { $sshCmd += " -i `"$($conn.IdentityFile)`"" }
+    $sshCmd += " $($conn.User)@$($conn.Host) `"$Command`""
+    
+    Write-Host "⚡ Executing on " -NoNewline -ForegroundColor Cyan
+    Write-Host $Connection -ForegroundColor Yellow
+    Write-Host "═" * 50 -ForegroundColor DarkCyan
+    Invoke-Expression $sshCmd
+}
+
+# File transfer functions
+function Copy-ToRemote {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Source,
+        
+        [Parameter(Mandatory)]
+        [string]$Destination,
+        
+        [Parameter(Mandatory)]
+        [string]$Connection,
+        
+        [switch]$Recurse
+    )
+    
+    if (-not $global:SSHConnections.ContainsKey($Connection)) {
+        Show-Error "Connection '$Connection' not found"
+        return
+    }
+    
+    $conn = $global:SSHConnections[$Connection]
+    $remoteTarget = "$($conn.User)@$($conn.Host):$Destination"
+    
+    $scpCmd = "scp -P $($conn.Port)"
+    if ($Recurse) { $scpCmd += " -r" }
+    if ($conn.IdentityFile) { $scpCmd += " -i `"$($conn.IdentityFile)`"" }
+    $scpCmd += " `"$Source`" `"$remoteTarget`""
+    
+    Write-Host "📤 Uploading to " -NoNewline -ForegroundColor Cyan
+    Write-Host "$Connection..." -ForegroundColor Yellow
+    Invoke-Expression $scpCmd
+    Show-Success "Upload complete"
+}
+
+function Copy-FromRemote {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Source,
+        
+        [Parameter(Mandatory)]
+        [string]$Destination,
+        
+        [Parameter(Mandatory)]
+        [string]$Connection,
+        
+        [switch]$Recurse
+    )
+    
+    if (-not $global:SSHConnections.ContainsKey($Connection)) {
+        Show-Error "Connection '$Connection' not found"
+        return
+    }
+    
+    $conn = $global:SSHConnections[$Connection]
+    $remoteSource = "$($conn.User)@$($conn.Host):$Source"
+    
+    $scpCmd = "scp -P $($conn.Port)"
+    if ($Recurse) { $scpCmd += " -r" }
+    if ($conn.IdentityFile) { $scpCmd += " -i `"$($conn.IdentityFile)`"" }
+    $scpCmd += " `"$remoteSource`" `"$Destination`""
+    
+    Write-Host "📥 Downloading from " -NoNewline -ForegroundColor Cyan
+    Write-Host "$Connection..." -ForegroundColor Yellow
+    Invoke-Expression $scpCmd
+    Show-Success "Download complete"
+}
+
+# SSH key management
+function New-SSHKeyPair {
+    param(
+        [string]$Name = "id_rsa",
+        [string]$Type = "ed25519",
+        [string]$Comment = ""
+    )
+    
+    $sshDir = "$env:USERPROFILE\.ssh"
+    if (-not (Test-Path $sshDir)) {
+        New-Item -ItemType Directory -Path $sshDir | Out-Null
+    }
+    
+    $keyPath = Join-Path $sshDir $Name
+    if (Test-Path $keyPath) {
+        Show-Warning "Key already exists: $keyPath"
+        $overwrite = Read-Host "Overwrite? (y/N)"
+        if ($overwrite -ne 'y') { return }
+    }
+    
+    $commentArg = if ($Comment) { "-C `"$Comment`"" } else { "" }
+    $cmd = "ssh-keygen -t $Type -f `"$keyPath`" $commentArg"
+    
+    Write-Host "🔑 Generating SSH key pair..." -ForegroundColor Cyan
+    Invoke-Expression $cmd
+    
+    Write-Host ""
+    Show-Success "Key pair created"
+    Write-Host "   Private: $keyPath" -ForegroundColor White
+    Write-Host "   Public:  $keyPath.pub" -ForegroundColor White
+}
+
+function Show-SSHPublicKey {
+    param([string]$Name = "id_rsa")
+    
+    $keyPath = "$env:USERPROFILE\.ssh\$Name.pub"
+    if (Test-Path $keyPath) {
+        Write-Host "📋 Public Key ($Name):" -ForegroundColor Cyan
+        Write-Host "═" * 60 -ForegroundColor DarkCyan
+        Write-Host ""
+        Get-Content $keyPath
+        Write-Host ""
+        Write-Host "💡 Copy this to your VPS: ~/.ssh/authorized_keys" -ForegroundColor Yellow
+    } else {
+        Show-Error "Key not found: $keyPath"
+    }
+}
+
+function Copy-SSHPublicKey {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Connection,
+        [string]$KeyName = "id_rsa"
+    )
+    
+    $keyPath = "$env:USERPROFILE\.ssh\$KeyName.pub"
+    if (-not (Test-Path $keyPath)) {
+        Show-Error "Key not found: $keyPath"
+        return
+    }
+    
+    if (-not $global:SSHConnections.ContainsKey($Connection)) {
+        Show-Error "Connection '$Connection' not found"
+        return
+    }
+    
+    $conn = $global:SSHConnections[$Connection]
+    Write-Host "🔑 Copying public key to " -NoNewline -ForegroundColor Cyan
+    Write-Host $Connection -ForegroundColor Yellow
+    
+    $sshCopyIdCmd = "type `"$keyPath`" | ssh -p $($conn.Port) $($conn.User)@$($conn.Host) `"mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys`""
+    Invoke-Expression $sshCopyIdCmd
+    
+    Show-Success "Public key copied successfully"
+    Write-Host "💡 You can now connect without password" -ForegroundColor Cyan
+}
+
+# Network utilities
+function Test-SSHPort {
+    param(
+        [Parameter(Mandatory)]
+        [string]$HostName,
+        [int]$Port = 22,
+        [int]$Timeout = 5
+    )
+    
+    Write-Host "🔍 Testing SSH connection to " -NoNewline -ForegroundColor Cyan
+    Write-Host "$HostName`:$Port" -NoNewline -ForegroundColor Yellow
+    Write-Host "..." -ForegroundColor Cyan
+    
+    try {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $connection = $tcpClient.BeginConnect($HostName, $Port, $null, $null)
+        $wait = $connection.AsyncWaitHandle.WaitOne($Timeout * 1000, $false)
+        
+        if ($wait) {
+            $tcpClient.EndConnect($connection)
+            $tcpClient.Close()
+            Show-Success "Port $Port is open and accessible"
+            return $true
+        } else {
+            Show-Error "Connection timeout"
+            return $false
+        }
+    } catch {
+        Show-Error "Connection failed: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+# Check VPS status without connecting
+function Get-VPSInfo {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
+    
+    if (-not $global:SSHConnections.ContainsKey($Name)) {
+        Show-Error "Connection '$Name' not found"
+        return
+    }
+    
+    Write-Host "📊 Fetching status for " -NoNewline -ForegroundColor Cyan
+    Write-Host "$Name" -NoNewline -ForegroundColor Yellow
+    Write-Host "..." -ForegroundColor Cyan
+    
+    $stats = Get-VPSStatus -Name $Name
+    Show-VPSDashboard -Name $Name -Stats $stats
+}
+
+# Monitor VPS in real-time
+function Watch-VPS {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name,
+        
+        [int]$Interval = 3
+    )
+    
+    if (-not $global:SSHConnections.ContainsKey($Name)) {
+        Show-Error "Connection '$Name' not found"
+        return
+    }
+    
+    Write-Host "📊 Monitoring " -NoNewline -ForegroundColor Cyan
+    Write-Host "$Name" -NoNewline -ForegroundColor Yellow
+    Write-Host " (Press Ctrl+C to stop)" -ForegroundColor Cyan
+    Write-Host ""
+    
+    while ($true) {
+        Clear-Host
+        Write-Host "🔄 Refreshing every $Interval seconds..." -ForegroundColor DarkGray
+        $stats = Get-VPSStatus -Name $Name
+        Show-VPSDashboard -Name $Name -Stats $stats
+        Write-Host "Press Ctrl+C to stop monitoring" -ForegroundColor DarkGray
+        Start-Sleep -Seconds $Interval
+    }
+}
+
+# SSH aliases
+Set-Alias -Name ssha -Value Add-SSHConnection -ErrorAction SilentlyContinue
+Set-Alias -Name sshl -Value Get-SSHConnections -ErrorAction SilentlyContinue
+Set-Alias -Name sshc -Value Connect-SSH -ErrorAction SilentlyContinue
+Set-Alias -Name sshr -Value Remove-SSHConnection -ErrorAction SilentlyContinue
+Set-Alias -Name sshcmd -Value Invoke-SSHCommand -ErrorAction SilentlyContinue
+Set-Alias -Name sshstat -Value Get-VPSInfo -ErrorAction SilentlyContinue
+Set-Alias -Name sshwatch -Value Watch-VPS -ErrorAction SilentlyContinue
+Set-Alias -Name scpup -Value Copy-ToRemote -ErrorAction SilentlyContinue
+Set-Alias -Name scpdown -Value Copy-FromRemote -ErrorAction SilentlyContinue
+Set-Alias -Name sshkey -Value New-SSHKeyPair -ErrorAction SilentlyContinue
+Set-Alias -Name sshpub -Value Show-SSHPublicKey -ErrorAction SilentlyContinue
+Set-Alias -Name sshcopy -Value Copy-SSHPublicKey -ErrorAction SilentlyContinue
+
+# Help function for SSH commands
+function help-ssh {
+    Write-Host ""
+    Write-Host "╔═══════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host "║           🔐 SSH Command Reference                    ║" -ForegroundColor Cyan
+    Write-Host "╚═══════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host ""
+    
+    Write-Host "📝 Connection Management:" -ForegroundColor Yellow
+    Write-Host "  ssha <name> <hostname> [-User <user>] [-Port <port>]" -ForegroundColor White
+    Write-Host "  sshl                  - List saved connections" -ForegroundColor White
+    Write-Host "  sshc <name>           - Connect to saved host (with dashboard)" -ForegroundColor White
+    Write-Host "  sshc <name> -NoStatus - Connect without status check" -ForegroundColor White
+    Write-Host "  sshr <name>           - Remove saved connection" -ForegroundColor White
+    Write-Host ""
+    
+    Write-Host "📊 VPS Monitoring:" -ForegroundColor Yellow
+    Write-Host "  sshstat <name>        - Check VPS status (CPU, RAM, Disk)" -ForegroundColor White
+    Write-Host "  sshwatch <name>       - Monitor VPS in real-time" -ForegroundColor White
+    Write-Host ""
+    
+    Write-Host "📤 File Transfer:" -ForegroundColor Yellow
+    Write-Host "  scpup <source> <dest> <connection> [-Recurse]" -ForegroundColor White
+    Write-Host "  scpdown <source> <dest> <connection> [-Recurse]" -ForegroundColor White
+    Write-Host ""
+    
+    Write-Host "🔑 Key Management:" -ForegroundColor Yellow
+    Write-Host "  sshkey [-Name <name>] [-Type <type>]" -ForegroundColor White
+    Write-Host "  sshpub [-Name <name>]" -ForegroundColor White
+    Write-Host "  sshcopy <connection> [-KeyName <name>]" -ForegroundColor White
+    Write-Host ""
+    
+    Write-Host "⚡ Remote Execution:" -ForegroundColor Yellow
+    Write-Host "  sshcmd <connection> <command>" -ForegroundColor White
+    Write-Host ""
+    
+    Write-Host "🌐 Network Tools:" -ForegroundColor Yellow
+    Write-Host "  Test-SSHPort <hostname> [-Port <port>]" -ForegroundColor White
+    Write-Host ""
+    
+    Write-Host "📚 Example Usage:" -ForegroundColor Green
+    Write-Host "  ssha debian 10.235.210.82 -User admin -Port 22" -ForegroundColor DarkGray
+    Write-Host "  sshc myvps" -ForegroundColor DarkGray
+    Write-Host "  scpup C:\file.txt /home/user/ myvps" -ForegroundColor DarkGray
+    Write-Host "  sshcmd myvps 'df -h'" -ForegroundColor DarkGray
+    Write-Host ""
+}
+
 # Show welcome screen on first load
 Show-WelcomeScreen
+
+# Show SSH hint if remote session
+if ($global:isSSHSession) {
+    Write-Host "🔐 " -NoNewline -ForegroundColor Green
+    Write-Host "SSH Session Detected - Type " -NoNewline -ForegroundColor Cyan
+    Write-Host "help-ssh" -NoNewline -ForegroundColor Yellow
+    Write-Host " for SSH commands" -ForegroundColor Cyan
+    Write-Host ""
+}
