@@ -3,12 +3,426 @@
 # ============================================
 # 🎨 Visual enhancements with icons, colors, and modern UI
 # 🛠️  Optimized for Claude Code with clean output
+# ⚡ Performance optimized with lazy loading
 
-# Import modules with auto-installation and visual feedback
+# Core modules only - everything else loaded on demand
 Import-Module PSReadLine -ErrorAction SilentlyContinue
 
 # ============================================
-# 🎯 Visual Status Functions (must be defined first)
+# � Auto-Update PowerShell Version (Windows Only)
+# ============================================
+function Update-PowerShellIfOutdated {
+    # Only run on Windows
+    if ($env:OS -notlike '*Windows*') { return }
+
+    # Check if winget is available
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        Write-Host "⚠️  winget not found. Cannot auto-update PowerShell." -ForegroundColor Yellow
+        return
+    }
+
+    # Get current version
+    $currentVersion = $PSVersionTable.PSVersion.ToString()
+
+    # Get latest available version from winget
+    $wingetInfo = winget search --id Microsoft.Powershell --exact | Select-String -Pattern "Microsoft.PowerShell" | Select-Object -First 1
+    if ($wingetInfo) {
+        $latestVersion = ($wingetInfo -split '\s+')[-1]
+    } else {
+        Write-Host "⚠️  Could not determine latest PowerShell version from winget." -ForegroundColor Yellow
+        return
+    }
+
+    if ($currentVersion -eq $latestVersion) {
+        Write-Host "🟢 PowerShell is up to date ($currentVersion)" -ForegroundColor Green
+        return
+    } else {
+        Write-Host "🔄 Updating PowerShell: $currentVersion → $latestVersion" -ForegroundColor Cyan
+        # Check for admin rights
+        $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        if (-not $isAdmin) {
+            Write-Host "⚠️  Please run PowerShell as Administrator to update." -ForegroundColor Yellow
+            return
+        }
+        try {
+            winget install --id Microsoft.Powershell --exact --silent --accept-package-agreements --accept-source-agreements
+            Write-Host "✅ PowerShell update initiated. Please restart your terminal after installation." -ForegroundColor Green
+        } catch {
+            Write-Host "❌ Failed to update PowerShell: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+}
+
+# Run auto-update check on profile load
+Update-PowerShellIfOutdated
+
+# ============================================
+# � Auto-Install Dependencies with User Permission
+# ============================================
+function Test-Dependency {
+
+    <#
+    .SYNOPSIS
+        Ensures a dependency is installed, prompts user to install if missing.
+
+    .DESCRIPTION
+        Checks if a dependency (any tool or runtime) is installed. If not, prompts the user for permission to install using winget or choco.
+        Works for any dependency, not just Java.
+
+    .PARAMETER DependencyName
+        The name of the dependency (e.g. 'node', 'python', 'git', 'java').
+    .PARAMETER CheckCommand
+        Command to check if the dependency is installed (e.g. 'node -v'). If omitted, uses Get-Command.
+    .PARAMETER WingetId
+        The winget package ID (e.g. 'OpenJS.NodeJS', 'Python.Python.3', 'Git.Git', 'Oracle.JavaRuntimeEnvironment').
+    .PARAMETER ChocoId
+        The choco package ID (e.g. 'nodejs', 'python', 'git', 'jdk8').
+
+    .EXAMPLE
+        Test-Dependency -DependencyName 'node' -CheckCommand 'node -v' -WingetId 'OpenJS.NodeJS' -ChocoId 'nodejs'
+        Test-Dependency -DependencyName 'python' -CheckCommand 'python --version' -WingetId 'Python.Python.3' -ChocoId 'python'
+        Test-Dependency -DependencyName 'git' -CheckCommand 'git --version' -WingetId 'Git.Git' -ChocoId 'git'
+        Test-Dependency -DependencyName 'java' -CheckCommand 'java -version' -WingetId 'Oracle.JavaRuntimeEnvironment' -ChocoId 'jdk8'
+
+    .NOTES
+        Call this function before running any command that requires a specific tool.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$DependencyName,   # e.g. 'node', 'python', 'git', 'java'
+        [string]$CheckCommand = $null, # e.g. 'node -v', 'python --version'
+        [string]$WingetId = $null,    # e.g. 'OpenJS.NodeJS', 'Python.Python.3'
+        [string]$ChocoId = $null      # e.g. 'nodejs', 'python'
+    )
+
+    # Check if dependency is already installed
+    $isInstalled = $false
+    if ($CheckCommand) {
+        try {
+            & $CheckCommand 2>$null | Out-Null
+            $isInstalled = $true
+        } catch { $isInstalled = $false }
+    } else {
+        # Fallback: try Get-Command
+        if (Get-Command $DependencyName -ErrorAction SilentlyContinue) { $isInstalled = $true }
+    }
+
+    if ($isInstalled) {
+        Write-Host "🟢 $DependencyName is already installed." -ForegroundColor Green
+        return $true
+    }
+
+    Write-Host "⚠️  $DependencyName is not installed." -ForegroundColor Yellow
+    $consent = Read-Host "Do you want to install $DependencyName now? (y/N)"
+    if ($consent -ne 'y') {
+        Write-Host "❌ Skipping installation of $DependencyName." -ForegroundColor Red
+        return $false
+    }
+
+    # Try winget first
+    if ($WingetId -and (Get-Command winget -ErrorAction SilentlyContinue)) {
+        try {
+            Write-Host "🔄 Installing $DependencyName via winget..." -ForegroundColor Cyan
+            winget install --id $WingetId --exact --silent --accept-package-agreements --accept-source-agreements
+            Write-Host "✅ $DependencyName installed via winget." -ForegroundColor Green
+            return $true
+        } catch {
+    Write-Host "❌ winget failed to install $DependencyName" -ForegroundColor Red
+        }
+    }
+
+    # Try choco if available
+    if ($ChocoId -and (Get-Command choco -ErrorAction SilentlyContinue)) {
+        try {
+            Write-Host "🔄 Installing $DependencyName via choco..." -ForegroundColor Cyan
+            choco install $ChocoId -y
+            Write-Host "✅ $DependencyName installed via choco." -ForegroundColor Green
+            return $true
+        } catch {
+            Write-Host "❌ choco failed to install $DependencyName" -ForegroundColor Red
+        }
+    }
+
+    Write-Host "❌ Could not install $DependencyName automatically. Please install it manually." -ForegroundColor Red
+    return $false
+}
+
+# Example usage for any dependency:
+# if (Test-Dependency -DependencyName 'node' -CheckCommand 'node -v' -WingetId 'OpenJS.NodeJS' -ChocoId 'nodejs') { node myscript.js }
+# if (Test-Dependency -DependencyName 'python' -CheckCommand 'python --version' -WingetId 'Python.Python.3' -ChocoId 'python') { python myscript.py }
+
+# ============================================
+# 🚀 SSH & VPS Access Enhancements
+# ============================================
+
+# Ensure Posh-SSH module is installed and imported
+if (-not (Get-Module -Name Posh-SSH -ListAvailable)) {
+    Write-Host "🔑 Installing Posh-SSH module for SSH/VPS support..." -ForegroundColor Cyan
+    try {
+        Install-Module -Name Posh-SSH -Scope CurrentUser -Force -ErrorAction Stop
+    } catch {
+        Write-Host "❌ Failed to install Posh-SSH: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+if (Get-Module -Name Posh-SSH -ListAvailable) {
+    Import-Module Posh-SSH -ErrorAction SilentlyContinue
+}
+
+# SSH Helper Functions
+function Connect-SSH {
+    <#
+    .SYNOPSIS
+        Connect to a remote server via SSH (interactive shell).
+    .EXAMPLE
+        Connect-SSH -RemoteHost 'myvps.com' -User 'root'
+    #>
+    param(
+        [Parameter(Mandatory)] [string]$RemoteHost,
+        [string]$User = $env:USERNAME,
+        [int]$Port = 22
+    )
+    ssh "${User}@${RemoteHost}" -p $Port
+}
+
+function Invoke-SSHCommand {
+    <#
+    .SYNOPSIS
+        Run a command on a remote server via SSH and show output.
+    .EXAMPLE
+        Invoke-SSHCommand -RemoteHost 'myvps.com' -User 'root' -Command 'uptime'
+    #>
+    param(
+        [Parameter(Mandatory)] [string]$RemoteHost,
+        [string]$User = $env:USERNAME,
+        [string]$Command,
+        [int]$Port = 22
+    )
+    ssh "${User}@${RemoteHost}" -p $Port "$Command"
+}
+
+function Send-SSHFile {
+    <#
+    .SYNOPSIS
+        Upload a file to a remote server via SCP.
+    .EXAMPLE
+        Send-SSHFile -RemoteHost 'myvps.com' -User 'root' -LocalPath './file.txt' -RemotePath '/root/file.txt'
+    #>
+    param(
+        [Parameter(Mandatory)] [string]$RemoteHost,
+        [string]$User = $env:USERNAME,
+        [Parameter(Mandatory)] [string]$LocalPath,
+        [Parameter(Mandatory)] [string]$RemotePath,
+        [int]$Port = 22
+    )
+    if (Get-Command scp -ErrorAction SilentlyContinue) {
+    scp -P $Port $LocalPath "${User}@${RemoteHost}:${RemotePath}"
+    } elseif (Get-Command Set-SCPFile -ErrorAction SilentlyContinue) {
+        Set-SCPFile -ComputerName $RemoteHost -Credential (Get-Credential -UserName $User) -LocalFile $LocalPath -RemotePath $RemotePath -Port $Port
+    } else {
+        Write-Host "❌ No SCP tool found. Please install OpenSSH or use Posh-SSH." -ForegroundColor Red
+    }
+}
+
+function Receive-SSHFile {
+    <#
+    .SYNOPSIS
+        Download a file from a remote server via SCP.
+    .EXAMPLE
+        Receive-SSHFile -RemoteHost 'myvps.com' -User 'root' -RemotePath '/root/file.txt' -LocalPath './file.txt'
+    #>
+    param(
+        [Parameter(Mandatory)] [string]$RemoteHost,
+        [string]$User = $env:USERNAME,
+        [Parameter(Mandatory)] [string]$RemotePath,
+        [Parameter(Mandatory)] [string]$LocalPath,
+        [int]$Port = 22
+    )
+    if (Get-Command scp -ErrorAction SilentlyContinue) {
+    scp -P $Port "${User}@${RemoteHost}:${RemotePath}" $LocalPath
+    } elseif (Get-Command Get-SCPFile -ErrorAction SilentlyContinue) {
+        Get-SCPFile -ComputerName $RemoteHost -Credential (Get-Credential -UserName $User) -RemoteFile $RemotePath -LocalPath $LocalPath -Port $Port
+    } else {
+        Write-Host "❌ No SCP tool found. Please install OpenSSH or use Posh-SSH." -ForegroundColor Red
+    }
+}
+
+function Get-SSHSessionList {
+    <#
+    .SYNOPSIS
+        List active SSH sessions (Posh-SSH only).
+    #>
+    if (Get-Command Get-SSHSession -ErrorAction SilentlyContinue) {
+        Get-SSHSession | Format-Table SessionId, Host, Connected, Username
+    } else {
+        Write-Host "No SSH session management available (Posh-SSH not loaded)." -ForegroundColor Yellow
+    }
+}
+
+# Aliases for quick access
+Set-Alias -Name sshc -Value Connect-SSH -ErrorAction SilentlyContinue
+Set-Alias -Name sshrun -Value Invoke-SSHCommand -ErrorAction SilentlyContinue
+Set-Alias -Name sshup -Value Send-SSHFile -ErrorAction SilentlyContinue
+Set-Alias -Name sshdown -Value Receive-SSHFile -ErrorAction SilentlyContinue
+Set-Alias -Name sshls -Value Get-SSHSessionList -ErrorAction SilentlyContinue
+
+# ============================================
+# � SSH Bookmarks & Tab Completion
+# ============================================
+$global:SSHBookmarks = @{}
+$sshBookmarksFile = "$env:APPDATA\PowerShell\ssh_bookmarks.json"
+if (Test-Path $sshBookmarksFile) {
+    try { $global:SSHBookmarks = Get-Content $sshBookmarksFile | ConvertFrom-Json -AsHashtable } catch { $global:SSHBookmarks = @{} }
+}
+function Add-SSHBookmark {
+    param([string]$Name, [string]$HostName, [string]$User = $env:USERNAME, [int]$Port = 22)
+    $global:SSHBookmarks[$Name] = @{HostName=$HostName;User=$User;Port=$Port}
+    $global:SSHBookmarks | ConvertTo-Json | Set-Content $sshBookmarksFile
+    Write-Host "🔖 SSH bookmark set: $Name -> ${User}@${HostName}:${Port}" -ForegroundColor Green
+}
+function Connect-SSHBookmark {
+    param([string]$Name)
+    if ($global:SSHBookmarks.ContainsKey($Name)) {
+        $b = $global:SSHBookmarks[$Name]
+        Connect-SSH -RemoteHost $b.HostName -User $b.User -Port $b.Port
+    } else {
+        Write-Host "Bookmark not found: $Name" -ForegroundColor Red
+    }
+}
+function Get-SSHBookmarkList {
+    if ($global:SSHBookmarks.Count -eq 0) { Write-Host "No SSH bookmarks set" -ForegroundColor Yellow; return }
+    Write-Host "=== SSH Bookmarks ===" -ForegroundColor Cyan
+    foreach ($b in $global:SSHBookmarks.GetEnumerator()) {
+    Write-Host "  $($b.Key): $($b.Value.User)@$($b.Value.HostName)`:$($b.Value.Port)" -ForegroundColor White
+    }
+}
+Register-ArgumentCompleter -CommandName Connect-SSHBookmark -ParameterName Name -ScriptBlock {
+    param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameters)
+    $global:SSHBookmarks.Keys | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
+}
+Set-Alias -Name sshbm -Value Add-SSHBookmark -ErrorAction SilentlyContinue
+Set-Alias -Name sshgo -Value Connect-SSHBookmark -ErrorAction SilentlyContinue
+Set-Alias -Name sshbmls -Value Get-SSHBookmarkList -ErrorAction SilentlyContinue
+
+# ============================================
+# 🖥️  Open Remote Folder in VS Code (Remote-SSH)
+# ============================================
+function Open-RemoteVSCode {
+    param([string]$RemoteHost, [string]$User = $env:USERNAME, [string]$RemotePath = "~", [int]$Port = 22)
+    $uri = "vscode-remote://ssh-remote+$User@$RemoteHost$RemotePath"
+    code --folder-uri $uri
+}
+Set-Alias -Name coderemote -Value Open-RemoteVSCode -ErrorAction SilentlyContinue
+
+# ============================================
+# 🖼️  Terminal-Icons Visuals
+# ============================================
+if (Get-Module -Name Terminal-Icons -ListAvailable) {
+    Import-Module Terminal-Icons -ErrorAction SilentlyContinue
+}
+
+# ============================================
+# 📊 Dashboard / Status Bar
+# ============================================
+function Show-Dashboard {
+    Write-Host ""; Write-Host "╔══════════════════════════════════════════════════════════╗" -ForegroundColor DarkCyan
+    Write-Host "║                 🚀 PowerShell Dashboard                 ║" -ForegroundColor Cyan
+    Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor DarkCyan
+    Write-Host ""
+    Write-Host "User: $env:USERNAME   Host: $env:COMPUTERNAME   Location: $(Get-Location)" -ForegroundColor White
+    if (Test-Path .git) {
+        $branch = git branch --show-current 2>$null
+        Write-Host "Git: $branch" -ForegroundColor Magenta
+    }
+    if ($global:SSHBookmarks.Count -gt 0) {
+        Write-Host "SSH Bookmarks: $($global:SSHBookmarks.Count) (type sshbmls)" -ForegroundColor Cyan
+    }
+    Write-Host "PowerShell: $($PSVersionTable.PSVersion)" -ForegroundColor Green
+    Write-Host ""; Write-Host "System Uptime: $(Get-SystemUptime)" -ForegroundColor Yellow
+    Write-Host ""; Write-Host "Type menu for command palette." -ForegroundColor DarkGray
+}
+Set-Alias -Name dash -Value Show-Dashboard -ErrorAction SilentlyContinue
+
+# ============================================
+# 🔑 SSH Key Management
+# ============================================
+function Get-SSHKeyList {
+    $sshDir = "$env:USERPROFILE\.ssh"
+    if (Test-Path $sshDir) {
+        Get-ChildItem $sshDir -Filter "id_*" | Where-Object { $_.Extension -ne ".pub" } | ForEach-Object {
+            Write-Host "  $($_.Name)" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "No SSH keys found." -ForegroundColor Yellow
+    }
+}
+function New-SSHKey {
+    param([string]$KeyName = "id_rsa")
+    $sshDir = "$env:USERPROFILE\.ssh"
+    if (-not (Test-Path $sshDir)) { New-Item -ItemType Directory -Path $sshDir | Out-Null }
+    ssh-keygen -t rsa -b 4096 -f "$sshDir\$KeyName"
+    Write-Host "SSH key generated: $sshDir\$KeyName" -ForegroundColor Green
+}
+function Copy-SSHKeyToClipboard {
+    param([string]$KeyName = "id_rsa.pub")
+    $sshDir = "$env:USERPROFILE\.ssh"
+    $pubKey = Join-Path $sshDir $KeyName
+    if (Test-Path $pubKey) {
+        Get-Content $pubKey | Set-Clipboard
+        Write-Host "SSH public key copied to clipboard." -ForegroundColor Green
+    } else {
+        Write-Host "Key not found: $pubKey" -ForegroundColor Red
+    }
+}
+Set-Alias -Name sshkeys -Value Get-SSHKeyList -ErrorAction SilentlyContinue
+Set-Alias -Name sshkeygen -Value New-SSHKey -ErrorAction SilentlyContinue
+Set-Alias -Name sshkeyclip -Value Copy-SSHKeyToClipboard -ErrorAction SilentlyContinue
+
+# ============================================
+# 🔔 Enhanced Notifications with BurntToast
+# ============================================
+if (Get-Module -Name BurntToast -ListAvailable) {
+    function Send-InfoNotification { param([string]$Msg) Show-ToastNotification -Title "Info" -Message $Msg -Sound "Default" }
+    function Send-ErrorNotification { param([string]$Msg) Show-ToastNotification -Title "Error" -Message $Msg -Sound "Alarm2" }
+    function Send-SuccessNotification { param([string]$Msg) Show-ToastNotification -Title "Success" -Message $Msg -Sound "Reminder" }
+    Set-Alias -Name notify -Value Send-InfoNotification -ErrorAction SilentlyContinue
+}
+
+# ============================================
+# 🧭 Command Palette / Menu
+# ============================================
+function Show-CommandPalette {
+    $options = @(
+        @{Name = "Dashboard"; Command = "Show-Dashboard"},
+        @{Name = "Quick Status"; Command = "Show-QuickStatus"},
+        @{Name = "SSH Bookmarks"; Command = "List-SSHBookmarks"},
+        @{Name = "Add SSH Bookmark"; Command = "Add-SSHBookmark"},
+        @{Name = "Connect SSH Bookmark"; Command = "Connect-SSHBookmark"},
+        @{Name = "Open Remote VSCode"; Command = "Open-RemoteVSCode"},
+        @{Name = "List SSH Keys"; Command = "List-SSHKeys"},
+        @{Name = "Generate SSH Key"; Command = "New-SSHKey"},
+        @{Name = "Copy SSH Key to Clipboard"; Command = "Copy-SSHKeyToClipboard"},
+        @{Name = "Show Files Detailed"; Command = "Show-FilesDetailed"},
+        @{Name = "Show Tree"; Command = "Show-Tree"},
+        @{Name = "Show Git Status"; Command = "Show-GitStatus"},
+        @{Name = "Show Project Info"; Command = "Show-ProjectInfo"},
+        @{Name = "Show Welcome Screen"; Command = "Show-WelcomeScreen"}
+    )
+    Write-Host ""; Write-Host "=== Command Palette ===" -ForegroundColor Cyan
+    for ($i = 0; $i -lt $options.Count; $i++) {
+        Write-Host ("{0,2}. {1}" -f ($i + 1), $options[$i].Name) -ForegroundColor Yellow
+    }
+    Write-Host ""
+    $choice = Read-Host "Select option (1-$($options.Count)) or 'q' to quit"
+    if ($choice -ne 'q' -and $choice -match '^[0-9]+$' -and $choice -le $options.Count) {
+        $selected = $options[$choice - 1]
+        Write-Host "Executing: $($selected.Name)" -ForegroundColor Green
+        Invoke-Expression $selected.Command
+    }
+}
+Set-Alias -Name menu -Value Show-CommandPalette -ErrorAction SilentlyContinue
+
+# ============================================
+# ���🎯 Visual Status Functions (must be defined first)
 # ============================================
 
 # Visual status indicators
@@ -205,7 +619,6 @@ function prompt {
 
     # Visual indicators with Unicode symbols
     $homeIcon = "🏠"
-    $folderIcon = "📁"
     $gitIcon = "🌿"
     $modifiedIcon = "✏️"
     $cleanIcon = "✅"
@@ -222,7 +635,6 @@ function prompt {
     }
 
     # Enhanced path display with icons
-    $pathParts = $location.Path.Split([IO.Path]::DirectorySeparatorChar)
     $isHome = $location.Path -eq $env:USERPROFILE
 
     if ($isHome) {
@@ -279,7 +691,8 @@ function gl { git log --oneline --graph --decorate -10 }
 # System shortcuts
 function which($name) { Get-Command $name -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Definition }
 function touch($file) { New-Item -ItemType File -Name $file -Force | Out-Null }
-function rm-rf($path) { Remove-Item -Recurse -Force $path }
+function Remove-ItemForce($path) { Remove-Item -Recurse -Force $path }
+Set-Alias -Name rm-rf -Value Remove-ItemForce -ErrorAction SilentlyContinue
 
 # Directory shortcuts
 function mkcd($dir) {
@@ -291,7 +704,8 @@ function mkcd($dir) {
 function Edit-Profile { notepad $PROFILE }
 
 # Reload profile
-function Reload-Profile { . $PROFILE; Write-Host "Profile reloaded!" -ForegroundColor Green }
+function Import-ProfileAgain { . $PROFILE; Write-Host "Profile reloaded!" -ForegroundColor Green }
+Set-Alias -Name Reload-Profile -Value Import-ProfileAgain -ErrorAction SilentlyContinue
 
 # ============================================
 # REST API and Cloud Integration Helpers
@@ -486,15 +900,17 @@ function ConvertTo-Base64 {
 }
 
 # URL encoding/decoding
-function Encode-Url {
+function ConvertTo-EncodedUrl {
     param([string]$Text)
     [uri]::EscapeDataString($Text)
 }
+Set-Alias -Name Encode-Url -Value ConvertTo-EncodedUrl -ErrorAction SilentlyContinue
 
-function Decode-Url {
+function ConvertFrom-EncodedUrl {
     param([string]$Text)
     [uri]::UnescapeDataString($Text)
 }
+Set-Alias -Name Decode-Url -Value ConvertFrom-EncodedUrl -ErrorAction SilentlyContinue
 
 # JSON formatting utilities
 function Format-JsonPretty {
@@ -503,7 +919,7 @@ function Format-JsonPretty {
     $jsonObject | ConvertTo-Json -Depth 10
 }
 
-function Validate-Json {
+function Test-JsonValid {
     param([string]$Json)
     try {
         ConvertFrom-Json $Json -ErrorAction Stop
@@ -515,6 +931,7 @@ function Validate-Json {
         return $false
     }
 }
+Set-Alias -Name Validate-Json -Value Test-JsonValid -ErrorAction SilentlyContinue
 
 # API testing aliases
 Set-Alias -Name api-test -Value Test-ApiEndpoint -ErrorAction SilentlyContinue
@@ -588,7 +1005,7 @@ function Show-ProjectInfo {
 }
 
 # Clean test runner
-function Run-Tests {
+function Invoke-Tests {
     param([string]$Filter = "")
 
     if (Test-Path "package.json") {
@@ -603,9 +1020,10 @@ function Run-Tests {
         Write-Host "No test framework detected" -ForegroundColor Yellow
     }
 }
+Set-Alias -Name Run-Tests -Value Invoke-Tests -ErrorAction SilentlyContinue
 
 # Clean build runner
-function Run-Build {
+function Invoke-Build {
     if (Test-Path "package.json") {
         npm run build
     } elseif (Test-Path "Cargo.toml") {
@@ -618,13 +1036,15 @@ function Run-Build {
         Write-Host "No build system detected" -ForegroundColor Yellow
     }
 }
+Set-Alias -Name Run-Build -Value Invoke-Build -ErrorAction SilentlyContinue
 
 # Show file with line numbers (useful for debugging)
 function Show-File {
     param([string]$Path, [int]$Lines = 50)
 
     if (Test-Path $Path) {
-        Get-Content $Path -TotalCount $Lines | ForEach-Object -Begin { $lineNum = 1 } -Process {
+        $lineNum = 1
+        Get-Content $Path -TotalCount $Lines | ForEach-Object {
             Write-Host ("{0,4}: {1}" -f $lineNum, $_)
             $lineNum++
         }
@@ -810,7 +1230,7 @@ function Start-DockerContainer {
     param(
         [string]$Name,
         [string]$Image = "ubuntu:latest",
-        [switch]$Detach = $true
+        [switch]$Detach
     )
     $detachFlag = if ($Detach) { "-d" } else { "" }
     docker run --name $Name $detachFlag $Image
@@ -853,17 +1273,19 @@ function Start-DevServer {
     }
 }
 
-function Create-ReactApp {
+function New-ReactApp {
     param([string]$Name)
     npx create-react-app $Name
     Set-Location $Name
 }
+Set-Alias -Name Create-ReactApp -Value New-ReactApp -ErrorAction SilentlyContinue
 
-function Create-NextApp {
+function New-NextApp {
     param([string]$Name)
     npx create-next-app@latest $Name
     Set-Location $Name
 }
+Set-Alias -Name Create-NextApp -Value New-NextApp -ErrorAction SilentlyContinue
 
 # Python virtual environment helpers
 function New-PythonVenv {
@@ -872,7 +1294,7 @@ function New-PythonVenv {
     Write-Host "Virtual environment '$Name' created" -ForegroundColor Green
 }
 
-function Activate-PythonVenv {
+function Enable-PythonVenv {
     param([string]$Name = "venv")
     if (Test-Path "$Name/Scripts/Activate.ps1") {
         & "$Name/Scripts/Activate.ps1"
@@ -880,15 +1302,17 @@ function Activate-PythonVenv {
         Write-Host "Virtual environment not found: $Name" -ForegroundColor Red
     }
 }
+Set-Alias -Name Activate-PythonVenv -Value Enable-PythonVenv -ErrorAction SilentlyContinue
 
 # Git workflow enhancements
-function Git-SetupStream {
+function Initialize-GitStream {
     param([string]$Email, [string]$Name)
     git config user.email $Email
     git config user.name $Name
     git config core.editor "code --wait"
     Write-Host "Git configured for $Name ``<$Email``>" -ForegroundColor Green
 }
+Set-Alias -Name Git-SetupStream -Value Initialize-GitStream -ErrorAction SilentlyContinue
 
 # Aliases for Claude-friendly commands
 Set-Alias -Name tree -Value Show-Tree -ErrorAction SilentlyContinue
@@ -927,12 +1351,13 @@ function Get-DirSize($path = ".") {
 }
 
 # Extract archives
-function Extract-Archive($file) {
+function Expand-CompressedFile($file) {
     $fullPath = Resolve-Path $file
     $destination = [System.IO.Path]::GetFileNameWithoutExtension($fullPath)
     Expand-Archive -Path $fullPath -DestinationPath $destination -Force
     Write-Host "Extracted to: $destination" -ForegroundColor Green
 }
+Set-Alias -Name Extract-Archive -Value Expand-CompressedFile -ErrorAction SilentlyContinue
 
 # Quick python server
 function Start-WebServer($port = 8000) {
@@ -950,13 +1375,14 @@ function Show-TopProcesses {
         Format-Table Name, CPU, Memory, Id -AutoSize
 }
 
-function Kill-ProcessByName {
+function Stop-ProcessByName {
     param([string]$Name)
     Get-Process -Name "*$Name*" | ForEach-Object {
         Stop-Process -Id $_.Id -Force
         Write-Host "Killed process: $($_.Name) (PID: $($_.Id))" -ForegroundColor Red
     }
 }
+Set-Alias -Name Kill-ProcessByName -Value Stop-ProcessByName -ErrorAction SilentlyContinue
 
 function Show-ProcessTree {
     param([int]$ProcessId = $PID)
@@ -1692,7 +2118,7 @@ if (Get-Module -Name BurntToast -ListAvailable) {
         param(
             [ScriptBlock]$ScriptBlock,
             [string]$TaskName = "Task",
-            [switch]$NotifyOnComplete = $true
+            [switch]$NotifyOnComplete
         )
 
         $startTime = Get-Date
@@ -1816,7 +2242,7 @@ if (Get-Module -Name PSScriptAnalyzer -ListAvailable) {
         Import-Module PSScriptAnalyzer -ErrorAction Stop
 
     # Analyze current script
-    function Analyze-CurrentScript {
+    function Invoke-CurrentScriptAnalysis {
         $scriptPath = $MyInvocation.ScriptName
         if ($scriptPath -and (Test-Path $scriptPath)) {
             Write-Host "🔍 Analyzing: $scriptPath" -ForegroundColor Cyan
@@ -1838,6 +2264,7 @@ if (Get-Module -Name PSScriptAnalyzer -ListAvailable) {
             Show-Warning "No script file found to analyze"
         }
     }
+    Set-Alias -Name Analyze-CurrentScript -Value Invoke-CurrentScriptAnalysis -ErrorAction SilentlyContinue
 
     # Format PowerShell code
     function Format-PowerShellCode {
@@ -1876,7 +2303,6 @@ if (Get-Module -Name PSScriptAnalyzer -ListAvailable) {
         $scripts = Get-ChildItem -Path $Path -Recurse -Include "*.ps1" -ErrorAction SilentlyContinue
 
         if ($scripts) {
-            $totalScripts = $scripts.Count
             $analyzed = 0
             $totalIssues = 0
 
@@ -1930,7 +2356,6 @@ if (Get-Module -Name PSCalendar -ListAvailable) {
 
         Write-Host ""
         $today = Get-Date
-        $daysInMonth = [DateTime]::DaysInMonth($Year, $Month)
         $currentDay = if ($Month -eq $today.Month -and $Year -eq $today.Year) { $today.Day } else { $null }
 
         if ($currentDay) {
@@ -1984,12 +2409,12 @@ Set-Alias -Name rainbow -Value Show-RainbowText -ErrorAction SilentlyContinue
 
 # Enhanced command with notification
 function Update-AllModulesWithNotification {
-    param([switch]$Notify = $true)
+    param([switch]$Notify)
 
     if ($Notify -and (Get-Module -Name BurntToast -ListAvailable)) {
         Invoke-WithNotification -ScriptBlock {
             Update-AllModules
-        } -TaskName "Module Update" -NotifyOnComplete $true
+        } -TaskName "Module Update" -NotifyOnComplete
     } else {
         Update-AllModules
     }
