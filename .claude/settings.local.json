@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(powershell.exe -NoProfile -Command \". .\\Microsoft.PowerShell_profile.ps1\")",
-      "Bash(powershell.exe -NoProfile -Command \"$content = Get-Content ''Microsoft.PowerShell_profile.ps1'' -Raw -Encoding UTF8; Set-Content ''Microsoft.PowerShell_profile.ps1'' -Value $content -Encoding UTF8\")"
+      "Bash(powershell.exe -NoProfile -Command \"$content = Get-Content ''Microsoft.PowerShell_profile.ps1'' -Raw -Encoding UTF8; Set-Content ''Microsoft.PowerShell_profile.ps1'' -Value $content -Encoding UTF8\")",
+      "Bash(powershell.exe -NoProfile -Command \"(Get-Content ''Microsoft.PowerShell_profile.ps1'' | Measure-Object -Line).Lines\")",
+      "Bash(powershell.exe -NoProfile -Command \"Measure-Command { . .\\Microsoft.PowerShell_profile.ps1 } | Select-Object TotalSeconds\")",
+      "Bash(powershell.exe -NoProfile -Command \"Measure-Command { . .\\Microsoft.PowerShell_profile.ps1 } | Select-Object TotalMilliseconds\")",
+      "Bash(powershell.exe -Command \"Measure-Command { . $PROFILE } | Select-Object @{Name=''Milliseconds'';Expression={[math]::Round($_TotalMilliseconds, 2)}}\")",
+      "Bash(powershell.exe -NoProfile -File test-profile-speed.ps1)",
+      "Bash(powershell.exe -Command \"Write-Host ''Testing new PowerShell session...'' -ForegroundColor Cyan; Write-Host ''Profile loaded successfully!'' -ForegroundColor Green\")"
     ],
     "deny": [],
     "ask": []

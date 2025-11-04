@@ -1,287 +1,273 @@
-# 🚀 Ultimate PowerShell Profile
+# ⚡ Ultra-Fast PowerShell Profile
 
-A comprehensive, feature-rich PowerShell profile designed for developers, system administrators, and power users. This profile transforms your standard PowerShell experience into a powerful, productive development environment with extensive functionality across multiple domains.
+A **blazing-fast**, streamlined PowerShell profile optimized for instant startup (<100ms). Clean, efficient, and focused on essential developer productivity without the bloat.
+
+## 🚀 Performance
+
+- **~50ms load time** after initial cache
+- **246 lines** (90% smaller than typical profiles)
+- **Lazy loading** for non-critical modules
+- **Zero parse errors** with proper UTF-8 encoding
+- **No background jobs** slowing down your prompt
+
+### Benchmark Results
+```
+Test 1: 309.8ms (first load with module caching)
+Test 2: 51.66ms
+Test 3: 50.96ms
+Test 4: 49.04ms
+Test 5: 53.65ms
+
+Average: 103ms (subsequent loads ~50ms)
+```
 
 ## ✨ Features
 
-### 🔧 **Module Management**
-- **Auto-installation** of essential PowerShell modules
-- **Smart module detection** and dependency management
-- **One-click updates** for all installed modules
-- **Graceful fallback** when modules aren't available
+### 🎨 Smart Prompt
+- **Git-aware** - Shows branch and dirty status
+- **Path truncation** - Smart path shortening for readability
+- **SSH/Remote detection** - Adapts for remote sessions
+- **Color-coded** - Clear visual hierarchy
+- **Fast git operations** - Direct calls, no job overhead
 
-### 💻 **Development Workflow**
-- **Multi-language support** (Node.js, Python, .NET, Rust, Go, Java, PHP, Ruby)
-- **Package manager integration** (npm, pip, cargo, composer, bundler, etc.)
-- **Docker integration** with container lifecycle management
-- **Database deployment** shortcuts (MongoDB, PostgreSQL, Redis)
-- **Project scaffolding** for React, Next.js, and other frameworks
-- **Virtual environment** management for Python
+### 📦 Module Management
+- **PSReadLine** - Enhanced command-line editing with IntelliSense
+- **Terminal-Icons** - File icons (lazy-loaded on first prompt)
+- **posh-git** - Git integration (lazy-loaded on first prompt)
+- **Manual install function** - Install optional modules on demand
 
-### ⚙️ **System Administration**
-- **Process management** and monitoring
-- **Service administration** with safety checks
-- **Network diagnostics** and port testing
-- **Performance monitoring** (CPU, Memory, Disk)
-- **Windows-specific utilities** (Event logs, updates, registry)
-- **System cleanup** and maintenance tools
+### ⚡ Essential Shortcuts
 
-### 🎯 **Productivity Enhancements**
-- **Directory bookmarks** with persistent storage
-- **Enhanced history** search and management
-- **Smart file operations** with safety confirmations
-- **Quick project status** checks
-- **Visual feedback** and progress indicators
+**Navigation:**
+```powershell
+..          # Go up one directory
+...         # Go up two directories
+....        # Go up three directories
+mkcd mydir  # Create and enter directory
+```
 
-### 🛡️ **Safety Features**
-- **Confirmation prompts** for dangerous operations
-- **Safe deletion** with recycle bin integration
-- **Automatic backups** before file operations
-- **Protected aliases** for common commands
+**File Operations:**
+```powershell
+ll          # List files with details
+la          # List all files including hidden
+ff myfile   # Find files by name pattern
+which cmd   # Show command location
+touch file  # Create empty file
+```
 
-### 🌐 **API & Cloud Integration**
-- **REST API testing** utilities
-- **GitHub integration** (repo info, search)
-- **Weather API** integration
-- **Clipboard management** tools
-- **JSON processing** and validation
-- **Cloud service** helpers (Azure, AWS ready)
+**Git Shortcuts:**
+```powershell
+gs          # git status
+ga .        # git add
+gc "msg"    # git commit -m
+gp          # git push
+gpl         # git pull
+gd          # git diff
+gco branch  # git checkout
+gb          # git branch
+gl          # git log (pretty graph, last 10)
+```
 
-### 🎨 **Enhanced UI/UX**
-- **Color-coded output** for better readability
-- **Progress bars** for long-running operations
-- **Visual notifications** for task completion
-- **Organized command structure** with clear sections
+**Profile Management:**
+```powershell
+Edit-Profile        # Open profile in VS Code
+Reload-Profile      # Reload profile without restarting
+```
 
-## 🚀 Quick Start
+### 🛠️ Lazy-Loaded Utilities
 
-### Installation
+These load only when you call them (no startup overhead):
 
-1. **Clone or download** this repository
-2. **Copy the profile** to your PowerShell directory:
+**System Info:**
+```powershell
+sysinfo             # Show OS, uptime, CPU, RAM
+top                 # Top processes by CPU
+top 20              # Top 20 processes
+netinfo             # Network configuration
+Test-Port host 80   # Test if port is open
+Get-DirSize         # Get current directory size
+Get-DirSize C:\     # Get specific directory size
+```
+
+**SSH Helpers:**
+```powershell
+Get-SSHHosts        # List SSH hosts from config
+Add-SSHKey          # Add SSH key to agent
+```
+
+**Development:**
+```powershell
+serve               # Start Python HTTP server on port 8000
+serve 3000          # Start HTTP server on port 3000
+```
+
+**Module Management:**
+```powershell
+Install-ProfileModules  # Install all optional modules
+```
+
+## 📥 Installation
+
+### Quick Install
+
+1. **Backup your existing profile:**
    ```powershell
-   # Backup your existing profile (if any)
-   mv $PROFILE $PROFILE.backup
+   Copy-Item $PROFILE "$PROFILE.backup" -ErrorAction SilentlyContinue
+   ```
 
-   # Copy the enhanced profile
-   cp Microsoft.PowerShell_profile.ps1 $PROFILE
-   ```
-3. **Restart PowerShell** or reload your profile:
+2. **Copy the new profile:**
    ```powershell
-   . $PROFILE
+   Copy-Item Microsoft.PowerShell_profile.ps1 $PROFILE
    ```
+
+3. **Restart PowerShell** - Your profile now loads instantly!
 
 ### First Run
 
-The profile will automatically:
-- ✅ Install essential modules (PSReadLine, Terminal-Icons, posh-git)
-- ✅ Configure enhanced PSReadLine settings
-- ✅ Set up color schemes and formatting
-- ✅ Display welcome message with quick commands
+On first run, the profile will:
+- ✅ Load PSReadLine if available
+- ✅ Configure intelligent history and tab completion
+- ✅ Set up color scheme
+- ✅ Cache module locations for faster subsequent loads
 
-## 📚 Command Reference
-
-### 📦 **Package Management**
+**Optional modules** (installed on demand):
 ```powershell
-install-pkgs          # Install packages for current project
-Install-MissingModule # Install any missing PowerShell module
-Update-AllModules     # Update all installed modules
+Install-ProfileModules
 ```
 
-### 🐳 **Docker Integration**
+This will install: PSReadLine, Terminal-Icons, posh-git, PSFzf, PSScriptAnalyzer, ImportExcel
+
+## 🎯 Design Philosophy
+
+This profile is built on three principles:
+
+1. **Speed First** - Every millisecond of startup time matters
+2. **Lazy Loading** - Load features only when needed
+3. **Zero Bloat** - Only essential features, nothing extra
+
+### What Was Removed?
+
+To achieve <100ms load times, we removed:
+- ❌ Background job-based git status (too slow)
+- ❌ Auto-installation on every startup
+- ❌ Heavy modules loaded synchronously
+- ❌ Extensive function libraries (2000+ lines removed)
+- ❌ Complex visual indicators with spinners
+- ❌ API integrations, Docker helpers, etc.
+
+**You can still add these back** if needed, but they'll be lazy-loaded only when called.
+
+## 🔧 Configuration
+
+### PSReadLine Settings
+
+The profile includes optimized PSReadLine configuration:
+- **Predictive IntelliSense** from history
+- **ListView style** for suggestions
+- **Smart history search** with up/down arrows
+- **Tab completion** with menu
+- **Color-coded syntax** highlighting
+
+### Customizing the Prompt
+
+Edit the `prompt` function in [Microsoft.PowerShell_profile.ps1](Microsoft.PowerShell_profile.ps1#L62-L130) to customize:
+- Colors
+- Path display format
+- Git branch formatting
+- Remote session indicators
+
+### Adding Custom Functions
+
+Add your functions at the end of the profile. For best performance:
+- Keep them small and focused
+- Use lazy loading for heavy operations
+- Avoid module imports at the top level
+
+## 📊 Performance Testing
+
+Test your profile load time:
 ```powershell
-docker-status         # Show containers and images
-Start-DockerContainer # Start a new container
-Stop-DockerContainer  # Stop and remove container
-Start-MongoDB        # Quick MongoDB container
-Start-PostgreSQL     # Quick PostgreSQL container
-Start-Redis          # Quick Redis container
+.\test-profile-speed.ps1
 ```
 
-### 🔧 **Development Tools**
+This will run 5 load tests and show average time.
+
+## 🛠️ Troubleshooting
+
+### Profile loads slowly
 ```powershell
-dev                   # Start development server
-test                  # Run project tests
-build                 # Build project
-Create-ReactApp myapp # Create new React app
-Create-NextApp myapp  # Create new Next.js app
-New-PythonVenv        # Create Python virtual environment
+# Test load time
+Measure-Command { . $PROFILE }
+
+# Check for slow git repos
+# The prompt checks .git - slow in large repos with many changes
 ```
 
-### ⚙️ **System Administration**
+### Git status not showing
 ```powershell
-top                   # Show top CPU processes
-perf                  # System performance overview
-services              # Show service status
-netinfo               # Network configuration
-uptime                # System uptime
-clean-temp            # Clean temporary files
-Show-EventLog         # Display event logs
+# Make sure you're in a git repository
+git status
+
+# Check git is in PATH
+which git
 ```
 
-### 📁 **Productivity**
+### Modules not loading
 ```powershell
-bookmarks             # Manage directory bookmarks
-Set-DirectoryBookmark # Set a bookmark
-Get-DirectoryBookmark # Jump to bookmark
-hist                  # Show command history
-search-hist pattern   # Search history
-qs                    # Quick project status
+# Install missing modules
+Install-ProfileModules
+
+# Check module path
+$env:PSModulePath
+
+# List available modules
+Get-Module -ListAvailable
 ```
 
-### 🌐 **API & Cloud**
+### Colors not working
 ```powershell
-api-test https://api.example.com  # Test API endpoints
-github-search "search term"       # Search GitHub repositories
-weather "City Name"               # Get weather information
-Get-PublicIP                      # Show public IP address
+# Ensure you're using a modern terminal
+# Windows Terminal, VS Code terminal recommended
+# Legacy console.exe has limited color support
 ```
 
-### 🛡️ **Safety & Backup**
-```powershell
-rm path/to/file       # Safe deletion with confirmation
-backup-file file.txt  # Create timestamped backup
-Clear-RecycleBin      # Clear recycle bin (with confirmation)
-```
+## 📈 Performance Comparison
 
-## 🎨 **Visual Features**
+| Metric | Old Profile | New Profile | Improvement |
+|--------|-------------|-------------|-------------|
+| **Lines** | 2,419 | 246 | 90% reduction |
+| **Load Time** | ~323ms | ~50ms | 6.5x faster |
+| **Modules (sync)** | 10+ | 1 | 90% reduction |
+| **Parse Errors** | Multiple | 0 | ✅ Fixed |
+| **Background Jobs** | Yes | No | ✅ Removed |
 
-### Color-Coded Output
-- 🟢 **Green**: Success operations, safe files
-- 🟡 **Yellow**: Warnings, large files
-- 🔴 **Red**: Errors, dangerous operations
-- 🔵 **Cyan**: Information and progress
-- 🟣 **Magenta**: API responses and JSON
+## 🤝 Contributing
 
-### Progress Indicators
-- `[▶]` Activity indicators for running tasks
-- `[■]` Progress bars for long operations
-- `✓` Success confirmations
-- `✗` Error notifications
+Want to add features? Great! Just remember:
 
-## ⚙️ **Configuration**
+1. **Keep it fast** - Prefer lazy loading
+2. **Test performance** - Use test-profile-speed.ps1
+3. **No auto-install** - Let users choose when to install
+4. **Document it** - Update this README
 
-### Environment Variables
-The profile respects these environment variables:
-- `PSModulePath` - Module search paths
-- `Path` - System PATH variable
-- `TEMP/TMP` - Temporary file locations
+## 📄 Files
 
-### Customizable Settings
-Edit these sections in the profile to customize:
-- **Module versions** in `$modulesToInstall`
-- **Color schemes** in PSReadLine configuration
-- **Default behaviors** for various functions
+- **[Microsoft.PowerShell_profile.ps1](Microsoft.PowerShell_profile.ps1)** - Main profile (246 lines)
+- **[test-profile-speed.ps1](test-profile-speed.ps1)** - Performance testing script
+- **profile_performance_test.md** - Performance test documentation
 
-## 🔗 **Integration Examples**
+## 🎓 Learning Resources
 
-### GitHub API Integration
-```powershell
-# Get repository information
-github-repo "microsoft" "powershell"
+- [about_Profiles (Microsoft Docs)](https://docs.microsoft.com/powershell/module/microsoft.powershell.core/about/about_profiles)
+- [PSReadLine Documentation](https://docs.microsoft.com/powershell/module/psreadline/)
+- [PowerShell Performance Tips](https://docs.microsoft.com/powershell/scripting/dev-cross-plat/performance/performance-tips)
 
-# Search for repositories
-github-search "powershell profile"
-```
+## 📜 License
 
-### REST API Testing
-```powershell
-# Test API endpoints
-api-test "https://jsonplaceholder.typicode.com/posts"
-
-# Make custom API calls
-api-call "https://api.github.com/user" -Headers @{"Authorization" = "token $token"}
-```
-
-### Project Management
-```powershell
-# Quick project overview
-qs
-
-# Show project structure
-tree
-
-# Show Git status
-gss
-
-# Run tests
-test
-
-# Build project
-build
-```
-
-## 🛠️ **Troubleshooting**
-
-### Common Issues
-
-**Profile won't load:**
-```powershell
-# Check syntax
-powershell -NoProfile -Command "Test-Path $PROFILE"
-
-# Validate profile syntax
-powershell -NoProfile -Command "& { $ast = [System.Management.Automation.Language.Parser]::ParseFile(\"$PROFILE\", [ref]$null, [ref]$null); $ast }"
-```
-
-**Modules won't install:**
-```powershell
-# Check execution policy
-Get-ExecutionPolicy
-
-# Set to RemoteSigned if needed
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-**Docker commands fail:**
-```powershell
-# Check if Docker Desktop is running
-docker version
-
-# Start Docker Desktop if needed
-Start-DockerDesktop
-```
-
-### Debug Mode
-Add this to the top of your profile for debugging:
-```powershell
-$DebugPreference = "Continue"
-```
-
-## 📈 **Performance Tips**
-
-1. **Module Loading**: Modules are loaded only once and cached
-2. **Lazy Loading**: Heavy operations use lazy evaluation
-3. **Error Handling**: Silent failures for optional components
-4. **Memory Management**: Automatic cleanup of temporary objects
-
-## 🤝 **Contributing**
-
-Feel free to contribute improvements:
-
-1. **Fork** the repository
-2. **Create** a feature branch
-3. **Test** your changes thoroughly
-4. **Submit** a pull request
-
-### Adding New Features
-- Follow the existing code structure
-- Add proper error handling
-- Include documentation
-- Test across different PowerShell versions
-
-## 📄 **License**
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## 🙏 **Acknowledgments**
-
-- **PSReadLine Team** for enhanced command-line editing
-- **PowerShell Community** for modules and inspiration
-- **Claude Code** for development environment optimization
+MIT License - Feel free to use and modify
 
 ---
 
-**Happy PowerShelling!** 🚀
+**⚡ Instant PowerShell, Zero Wait Time**
 
-*This profile is designed to make your PowerShell experience more productive, safe, and enjoyable. If you have suggestions or find issues, please contribute to make it even better!*
+*Optimized for developers who value their time. Every millisecond matters.*
